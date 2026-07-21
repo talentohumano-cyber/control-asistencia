@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de asistencia y horas a favor · Obra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#22303c;
+  --ink-soft:#51616e;
+  --paper:#f4f5f2;
+  --paper-dim:#eceee9;
+  --card:#ffffff;
+  --line:#d8dcd6;
+  --line-strong:#b9c0b8;
+  --credit:#1f6f50;
+  --credit-bg:#f0f6f1;
+  --debit:#a05a12;
+  --debit-bg:#faf4ea;
+  --real-bg:#f2f5f7;
+  --feriado:#6b4a9e;
+  --feriado-bg:#f4f0fa;
+  --alert:#b3372e;
+  --alert-bg:#fbeeec;
+  --focus:#2f5e8d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45}
+h1,h2,h3{font-family:"Archivo","IBM Plex Sans",sans-serif;margin:0}
+.num,.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* ---------- Cabecera ---------- */
+.topbar{background:var(--ink);color:var(--paper);padding:20px 24px 18px;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;border-bottom:3px solid var(--credit)}
+.topbar h1{font-size:21px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.15}
+.topbar h1 span{color:#9fd6ba;font-weight:700}
+.topbar .sub{margin:4px 0 0;font-size:12.5px;color:#c3ccd3;max-width:66ch}
+.obra-box{display:flex;flex-direction:column;gap:4px;min-width:260px}
+.obra-box label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#9fb0bd}
+.obra-box input{background:transparent;border:none;border-bottom:1px solid #6a7a86;color:var(--paper);padding:4px 2px;font-size:15px;font-weight:600}
+.obra-box input::placeholder{color:#7c8d99;font-weight:400}
+#storageChip{font-size:11px;letter-spacing:.05em;color:#c3ccd3;display:flex;align-items:center;gap:6px;padding-bottom:6px}
+#storageChip .dot{width:8px;height:8px;border-radius:50%;background:#8a9aa6;display:inline-block}
+#storageChip.on .dot{background:#5ec78f}
+
+main{max-width:1680px;margin:0 auto;padding:18px 24px 40px}
+
+/* ---------- Paneles ---------- */
+.panel{background:var(--card);border:1px solid var(--line);margin-bottom:18px}
+.panel-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+.panel h2{font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.panel h3{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+details.box{background:var(--card);border:1px solid var(--line);margin-bottom:14px}
+details.box summary{padding:12px 16px;font-family:"Archivo",sans-serif;font-weight:700;font-size:13px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+details.box summary::before{content:"+";font-size:16px;width:14px;color:var(--ink-soft)}
+details.box[open] summary::before{content:"–"}
+details.box summary small{font-family:"IBM Plex Sans";font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-soft)}
+
+/* ---------- Configuración de colaboradores ---------- */
+.empList{padding:6px 16px 14px;display:flex;flex-direction:column;gap:10px}
+.empCard{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;padding:10px 12px;border:1px solid var(--line);background:#fcfcfb}
+.empCard label{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.empCard label input{border:1px solid var(--line);padding:3px 6px;font-size:13px;background:#fff}
+.empCard input.empNom{font-weight:600;width:180px}
+.empCard input.empCargo{width:150px}
+.empCard input.empArea{width:100px}
+.empCard input.empAct{width:250px}
+.paramGrid label{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.paramGrid input,.paramGrid select{border:1px solid var(--line);padding:3px 6px;font-size:13px;background:#fff}
+.empCard .hDia{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.empCard .hDia b{font-family:"IBM Plex Mono";color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{border:1px solid var(--line-strong);background:#fff;color:var(--ink-soft);font-size:11px;padding:3px 8px;letter-spacing:.03em}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+button.ghost{background:transparent;border:1px solid var(--line-strong);color:var(--ink-soft);padding:4px 10px;font-size:12px}
+button.ghost:hover{border-color:var(--ink);color:var(--ink)}
+button.ghost.danger:hover{border-color:var(--alert);color:var(--alert)}
+.padBox{padding:10px 16px 16px}
+
+/* ---------- Parámetros ---------- */
+.paramGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;padding:12px 16px 16px}
+.paramGrid .pnote{grid-column:1/-1;font-size:12px;color:var(--ink-soft);margin:0}
+.paramGrid label input[type=number]{width:110px;font-family:"IBM Plex Mono"}
+.paramGrid label.inline{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--ink)}
+
+/* ---------- Feriados ---------- */
+.ferWrap{padding:12px 16px 16px;display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:18px}
+@media(max-width:900px){.ferWrap{grid-template-columns:1fr}}
+.ferAdd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px}
+.ferAdd label{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.ferAdd input{border:1px solid var(--line);padding:4px 6px;background:#fff}
+.ferAdd input[type=text]{min-width:220px}
+.ferHelp{font-size:12px;color:var(--ink-soft)}
+.ferHelp code{background:var(--paper-dim);padding:1px 5px;font-size:11.5px}
+table.fer{border-collapse:collapse;width:100%;font-size:12.5px}
+table.fer th{font-family:"Archivo";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:6px 8px;border-bottom:2px solid var(--line-strong)}
+table.fer td{padding:4px 8px;border-bottom:1px solid var(--line)}
+table.fer td.mono{white-space:nowrap}
+table.fer button{border:none;background:none;color:var(--alert);font-size:14px;line-height:1;padding:0 4px}
+
+/* ---------- Controles ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.controls select,.controls input[type=number]{border:1px solid var(--line-strong);background:#fff;padding:6px 8px;font-size:13.5px}
+.controls .sep{flex:1}
+.controls button{border:1px solid var(--ink);background:var(--ink);color:#fff;padding:6px 12px;font-size:12.5px;letter-spacing:.03em}
+.controls button.sec{background:#fff;color:var(--ink)}
+.controls button.nav{background:#fff;color:var(--ink);border:1px solid var(--line-strong);padding:6px 10px}
+.controls button.prim{background:var(--credit);border-color:var(--credit)}
+#selAnio{width:84px}
+.pasteBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--credit-bg);border:1px solid var(--credit);padding:8px 12px;margin-bottom:12px;font-size:12.5px}
+.pasteBar b{font-family:"IBM Plex Mono"}
+.pasteBar input[type=date]{border:1px solid var(--line-strong);padding:3px 6px;background:#fff;font-size:12.5px}
+.pasteBar label{display:flex;align-items:center;gap:5px}
+.pasteBar button{border:1px solid var(--credit);background:var(--credit);color:#fff;padding:4px 12px;font-size:12px}
+.pasteBar button.sec{background:#fff;color:var(--ink);border-color:var(--line-strong)}
+#selEmp{min-width:200px;font-weight:600}
+
+/* ---------- Tiras de saldo ---------- */
+.stripTitle{font-family:"Archivo";font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 4px 2px}
+.saldoStrip{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--line);margin-bottom:14px}
+.saldoStrip .fig{padding:12px 18px;border-left:1px solid var(--line)}
+.saldoStrip .fig:first-child{border-left:none}
+.saldoStrip .lbl{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:4px}
+.saldoStrip .val{font-family:"IBM Plex Mono";font-size:24px;font-weight:600;line-height:1.1}
+.saldoStrip .val small{font-size:13px;font-weight:400;color:var(--ink-soft)}
+.saldoStrip .subv{display:block;font-size:10.5px;color:var(--ink-soft);margin-top:3px}
+.fig.gen .val{color:var(--credit)}
+.fig.rec .val{color:var(--debit)}
+.fig.pen .val{color:var(--ink-soft)}
+.fig.hito{border-top:3px solid var(--credit);background:var(--credit-bg)}
+.fig.hito .val{color:var(--credit)}
+.fig.hito.negativo{border-top-color:var(--alert);background:var(--alert-bg)}
+.fig.hito.negativo .val{color:var(--alert)}
+
+/* ---------- Matriz ---------- */
+.matrix-head{padding:12px 16px;border-bottom:1px solid var(--line)}
+.matrix-head p{margin:3px 0 0;font-size:12.5px;color:var(--ink-soft)}
+.table-scroll{overflow:auto;max-height:72vh}
+table.matrix{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+table.matrix th,table.matrix td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;white-space:nowrap;vertical-align:middle;background:#fff}
+table.matrix thead th{font-family:"Archivo",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);position:sticky;z-index:4;background:var(--card)}
+table.matrix thead tr.grp th{top:0;height:26px;border-bottom:2px solid var(--line-strong);text-align:left}
+table.matrix thead tr.cols th{top:27px;height:26px;color:var(--ink-soft);font-size:10px}
+th.gh-real,td.g-real{background:var(--real-bg)}
+th.gh-hf,td.g-hf{background:var(--credit-bg)}
+th.gh-rec,td.g-rec{background:var(--debit-bg)}
+th.gh-hf{color:var(--credit)!important}
+th.gh-rec{color:var(--debit)!important}
+table.matrix .c-fec{position:sticky;left:0;z-index:3;background:var(--card);border-right:2px solid var(--line-strong);min-width:74px;font-family:"IBM Plex Mono";font-weight:600}
+table.matrix thead .c-fec{z-index:6}
+table.matrix .c-fec .copyBtn{float:right;border:1px solid var(--line-strong);background:#fff;color:var(--ink-soft);font-size:11px;line-height:1;padding:2px 5px;margin-left:4px}
+table.matrix .c-fec .copyBtn:hover{border-color:var(--ink);color:var(--ink)}
+table.matrix .c-fec span{display:block;font-family:"IBM Plex Sans";font-weight:400;font-size:10.5px;color:var(--ink-soft)}
+td.c-con{color:var(--ink-soft);font-family:"IBM Plex Mono";font-size:12px}
+tr.desc td{background:var(--paper-dim)}
+tr.desc td.c-fec{background:var(--paper-dim)}
+tr.desc td.c-con em,tr.fer td.c-con em{font-style:normal;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8a948b}
+tr.fer td{background:var(--feriado-bg)}
+tr.fer td.c-fec{background:var(--feriado-bg);box-shadow:inset 3px 0 0 var(--feriado)}
+tr.fer td.c-con em{color:var(--feriado)}
+td.c-con .fname{display:block;font-family:"IBM Plex Sans";font-size:10.5px;color:var(--feriado);white-space:normal;max-width:150px}
+tr.hoy td.c-fec{box-shadow:inset 3px 0 0 var(--focus)}
+td.numcell{font-family:"IBM Plex Mono";text-align:right;min-width:60px}
+td.numcell .sub{display:block;font-size:10px;color:var(--ink-soft);font-weight:400}
+td.numcell.credit{color:var(--credit);font-weight:600}
+td.numcell.debit{color:var(--debit);font-weight:600}
+td.numcell.pos{color:var(--credit)}
+td.numcell.neg{color:var(--alert)}
+td.numcell.err{color:var(--alert);background:var(--alert-bg)!important;font-weight:600}
+td.cmp{font-size:10.5px;color:var(--ink-soft);max-width:190px;white-space:normal;line-height:1.35}
+td.cmp .falta{color:var(--alert);font-weight:600}
+table.matrix input[type=time]{width:92px;border:none;border-bottom:1px solid var(--line-strong);background:transparent;padding:2px 2px;font-family:"IBM Plex Mono";font-size:12.5px}
+table.matrix input[type=text]{border:none;border-bottom:1px solid var(--line-strong);background:transparent;padding:2px 2px;font-size:12.5px}
+table.matrix input.aut{width:110px}
+table.matrix input.act{width:150px}
+table.matrix input.jus{width:250px}
+table.matrix input.badfield{border-bottom:2px solid var(--alert);background:var(--alert-bg)}
+table.matrix input[type=checkbox]{width:16px;height:16px;accent-color:var(--debit)}
+table.matrix select{border:1px solid var(--line);background:#fff;padding:2px 4px;font-size:12px}
+select.est[data-est="Pendiente"]{color:var(--debit);border-color:var(--debit)}
+select.est[data-est="Autorizada"]{color:var(--credit);border-color:var(--credit);font-weight:600}
+select.est[data-est="Rechazada"]{color:var(--alert);border-color:var(--alert)}
+.warn{color:var(--alert);font-size:11px;cursor:help;margin-left:4px}
+
+/* ---------- Validación mensual ---------- */
+.valWrap{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 16px}
+@media(max-width:900px){.valWrap{grid-template-columns:1fr}}
+.valStep{border:1px solid var(--line);padding:10px 12px;background:#fcfcfb;display:flex;flex-direction:column;gap:6px}
+.valStep .rol{font-family:"Archivo";font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft)}
+.valStep .rol b{display:block;font-size:12px;color:var(--ink);letter-spacing:.05em}
+.valStep input[type=text]{border:none;border-bottom:1px solid var(--line-strong);background:transparent;padding:3px 2px}
+.valStep .ok{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.valStep .ok input{width:16px;height:16px;accent-color:var(--credit)}
+.valStep .fch{font-size:11px;color:var(--ink-soft);font-family:"IBM Plex Mono"}
+.valStep.done{border-color:var(--credit);background:var(--credit-bg)}
+.valStatus{padding:0 16px 4px;font-size:12.5px}
+.valStatus .pill{display:inline-block;padding:2px 10px;border:1px solid;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.valStatus .pill.ok{color:var(--credit);border-color:var(--credit);background:var(--credit-bg)}
+.valStatus .pill.no{color:var(--debit);border-color:var(--debit);background:var(--debit-bg)}
+.obsBox{padding:6px 16px 16px}
+.obsBox textarea{width:100%;min-height:64px;border:1px solid var(--line);padding:8px;background:#fff;resize:vertical}
+.obsBox label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:4px}
+
+/* ---------- Novedades / alertas ---------- */
+ul.plainList{margin:0;padding:8px 16px 14px 32px;font-size:12.5px}
+ul.plainList li{margin-bottom:4px}
+ul.plainList li.al{color:var(--alert)}
+ul.plainList li .tag{font-family:"Archivo";font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border:1px solid;margin-right:6px}
+li .tag.hf{color:var(--credit);border-color:var(--credit)}
+li .tag.rc{color:var(--debit);border-color:var(--debit)}
+li .tag.fe{color:var(--feriado);border-color:var(--feriado)}
+li .tag.alr{color:var(--alert);border-color:var(--alert)}
+.vacio{color:var(--ink-soft);font-style:italic}
+
+/* ---------- Kardex ---------- */
+.two-col{display:grid;grid-template-columns:5fr 7fr;gap:18px}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr}.saldoStrip{grid-template-columns:repeat(2,1fr)}.saldoStrip .fig{border-top:1px solid var(--line)}}
+table.plain{border-collapse:collapse;width:100%;font-size:12.5px}
+table.plain th{font-family:"Archivo";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:8px 10px;border-bottom:2px solid var(--line-strong)}
+table.plain td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.plain td.num{text-align:right;white-space:nowrap}
+table.plain tr.total td{border-top:2px solid var(--line-strong);font-weight:600;background:#fcfcfb}
+.badge{display:inline-block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border:1px solid}
+.badge.Pendiente{color:var(--debit);border-color:var(--debit);background:var(--debit-bg)}
+.badge.Autorizada{color:var(--credit);border-color:var(--credit);background:var(--credit-bg)}
+.badge.Rechazada{color:var(--alert);border-color:var(--alert);background:var(--alert-bg)}
+td .neg{color:var(--alert);font-weight:600}
+
+/* ---------- Notas ---------- */
+details.notes{border:1px solid var(--line);background:var(--card);margin-top:18px;font-size:12.5px;color:var(--ink-soft)}
+details.notes summary{padding:10px 16px;font-family:"Archivo";font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);cursor:pointer}
+details.notes ol{margin:0;padding:0 16px 14px 34px}
+details.notes li{margin-bottom:4px}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;right:18px;bottom:18px;max-width:420px;background:#fff;border:1px solid var(--alert);border-left:5px solid var(--alert);color:var(--ink);padding:12px 16px;font-size:13px;box-shadow:0 4px 18px rgba(34,48,60,.18);display:none;z-index:50}
+#toast.show{display:block}
+#toast b{color:var(--alert)}
+#toast.ok{border-color:var(--credit);border-left-color:var(--credit)}
+#toast.ok b{color:var(--credit)}
+
+/* ---------- Impresión ---------- */
+.print-only{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body{background:#fff;font-size:10px}
+  .topbar,.controls,.pasteBar,details.box,details.notes,#storageChip,#toast,.no-print,#panelVal{display:none!important}
+  main{padding:0;max-width:none}
+  .print-only{display:block;margin-bottom:8px}
+  .print-only h1{font-size:15px;letter-spacing:.05em;text-transform:uppercase}
+  .print-only p{margin:2px 0;font-size:10.5px}
+  .panel,.saldoStrip{border-color:#999;break-inside:avoid;margin-bottom:8px}
+  .table-scroll{overflow:visible;max-height:none}
+  table.matrix input,table.matrix select{border:none;background:transparent}
+  table.matrix input.jus{width:180px;white-space:normal}
+  table.matrix .copyBtn{display:none}
+  .saldoStrip .val{font-size:15px}
+  .two-col{display:block}
+  .firmas{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin-top:56px;break-inside:avoid}
+  .firmas div{border-top:1px solid #333;padding-top:5px;text-align:center;font-size:10px}
+  .firmas .fnom{font-weight:600;font-size:11px}
+  .firmas .frol{text-transform:uppercase;letter-spacing:.06em;color:#333}
+  /* ---- Hoja institucional: Registro de Asistencia ---- */
+  @page hoja{size:A4 portrait;margin:12mm}
+  #hojaFMDJ{display:block;page:hoja;break-after:page;color:#000;font-size:10.5px}
+  #hojaFMDJ table{border-collapse:collapse;width:100%}
+  #hojaFMDJ .enc td{border:1px solid #444;padding:3px 8px;vertical-align:middle}
+  #hojaFMDJ .enc .logo{width:120px;text-align:center;font-family:"Archivo";font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;line-height:1.3}
+  #hojaFMDJ .enc .instit{text-align:center;font-weight:700;font-size:11.5px;letter-spacing:.05em}
+  #hojaFMDJ .enc .lbl{width:120px;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+  #hojaFMDJ .enc .titulo{text-align:center;font-family:"Archivo";font-weight:800;font-size:15px;letter-spacing:.08em}
+  #hojaFMDJ table.dias{margin-top:6px}
+  #hojaFMDJ .dias th{border:1px solid #444;padding:3px 5px;font-family:"Archivo";font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;text-align:center;line-height:1.25}
+  #hojaFMDJ .dias td{border:1px solid #444;padding:2px 6px;height:14px}
+  #hojaFMDJ .dias td.fecha{text-align:right;white-space:nowrap;width:170px}
+  #hojaFMDJ .dias td.c{text-align:center;font-family:"IBM Plex Mono";font-size:10px;white-space:nowrap}
+  #hojaFMDJ .dias tr.tot td{font-weight:700;border-top:2px solid #000}
+  #hojaFMDJ .firmasF{margin-top:44px;width:100%}
+  #hojaFMDJ .firmasF td{width:33.3%;padding:0 14px;text-align:center;vertical-align:bottom}
+  #hojaFMDJ .firmasF .linea{border-top:1px solid #000;padding-top:4px;font-size:9.5px}
+  #hojaFMDJ .firmasF .rolF{text-transform:uppercase;letter-spacing:.05em;font-size:8.5px}
+  #hojaFMDJ .firmasF .nomF{font-weight:700;font-size:10px}
+}
+.firmas{display:none}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>Control de asistencia <span>y horas a favor</span></h1>
+    <p class="sub">Registro mensual por colaborador · fracciones válidas 00 / 30 / 45 · HF fuera de jornada (doble en descanso y feriado) · recuperación por días completos con validación de tres roles</p>
+  </div>
+  <div class="obra-box">
+    <label for="obraInput">Obra / Proyecto / Centro</label>
+    <input id="obraInput" placeholder="Nombre de la obra o centro de costo">
+  </div>
+  <div id="storageChip"><span class="dot"></span><span id="storageTxt">Verificando guardado…</span></div>
+</header>
+
+<main>
+
+  <div class="print-only" id="hojaFMDJ"></div>
+
+  <div class="print-only" id="printMeta">
+    <h1>Reporte consolidado · Control de asistencia y horas a favor</h1>
+    <p id="pmObra"></p>
+    <p id="pmEmp"></p>
+    <p id="pmSaldos"></p>
+  </div>
+
+  <details class="box">
+    <summary>Colaboradores y jornadas contractuales <small>— días, horarios y almuerzo editables</small></summary>
+    <div class="empList" id="empList"></div>
+    <div class="padBox"><button class="ghost" id="btnAddEmp">+ Añadir colaborador</button></div>
+  </details>
+
+  <details class="box">
+    <summary>Parámetros del modelo <small>— factores, valor del día de recuperación y roles</small></summary>
+    <div class="paramGrid">
+      <label>Factor HF en día de descanso
+        <input type="number" id="pFacDesc" min="1" step="0.5">
+      </label>
+      <label>Factor HF en feriado nacional
+        <input type="number" id="pFacFer" min="1" step="0.5">
+      </label>
+      <label>Horas de saldo por día de recuperación
+        <input type="number" id="pHorasRec" min="1" step="1">
+      </label>
+      <label class="inline"><input type="checkbox" id="pValidaFrac"> Validar fracciones de minutos (00 / 30 / 45)</label>
+      <label>Rol 1 · registra
+        <input type="text" id="pRol1">
+      </label>
+      <label>Rol 2 · revisa
+        <input type="text" id="pRol2">
+      </label>
+      <label>Rol 3 · aprueba
+        <input type="text" id="pRol3">
+      </label>
+      <p class="pnote">Todos los parámetros son editables por tratarse de una propuesta. Cada novedad (permiso médico, calamidad doméstica, cumpleaños) acredita la jornada del día; «Recuperación de horas» consume 8 h de saldo por día (editable), imputadas por FIFO desde el saldo del año anterior. La estructura de tres roles queda lista para los niveles de acceso de la futura aplicación.</p>
+    </div>
+  </details>
+
+  <details class="box" id="boxFeriados">
+    <summary>Feriados nacionales <small>— se cargan y actualizan año a año</small></summary>
+    <div class="ferWrap">
+      <div>
+        <div class="ferAdd">
+          <label>Fecha<input type="date" id="ferFecha"></label>
+          <label>Nombre del feriado<input type="text" id="ferNombre" placeholder="p. ej. Batalla de Pichincha"></label>
+          <button class="ghost" id="btnFerAdd">Agregar</button>
+        </div>
+        <div class="ferAdd">
+          <button class="ghost" id="btnFerCsv">Importar lista (CSV)</button>
+          <input type="file" id="fileFer" accept=".csv,text/csv,text/plain" hidden>
+          <span class="ferHelp">Una línea por feriado: <code>2027-01-01;Año Nuevo</code> o <code>01/01/2027;Año Nuevo</code></span>
+        </div>
+        <p class="ferHelp">Los feriados marcan el día como no exigible: no suman al plan mensual y el trabajo realizado en ellos se reconoce como horas a favor con el factor de feriado. La lista 2026 viene precargada y es editable; verifíquela contra el calendario oficial del Ministerio del Trabajo.</p>
+      </div>
+      <div>
+        <table class="fer">
+          <thead><tr><th style="width:110px">Año <select id="ferAnio" style="margin-left:6px"></select></th><th>Feriado</th><th style="width:30px"></th></tr></thead>
+          <tbody id="ferBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <div class="controls">
+    <select id="selEmp" aria-label="Colaborador"></select>
+    <button class="nav" id="prevMes" aria-label="Mes anterior">◀</button>
+    <select id="selMes" aria-label="Mes"></select>
+    <input type="number" id="selAnio" aria-label="Año" min="2020" max="2100">
+    <button class="nav" id="nextMes" aria-label="Mes siguiente">▶</button>
+    <span class="sep"></span>
+    <button class="sec" id="btnCsv">Exportar CSV del mes</button>
+    <button class="sec" id="btnJsonExp">Respaldo JSON</button>
+    <button class="sec" id="btnJsonImp">Importar JSON</button>
+    <input type="file" id="fileJson" accept="application/json" hidden>
+    <button class="sec" id="btnClear">Borrar mes</button>
+    <button class="sec" id="btnReset">Reiniciar ejemplo</button>
+    <button class="prim" id="btnPrint">Imprimir reporte consolidado</button>
+  </div>
+
+  <div class="pasteBar" id="pasteBar" hidden>
+    <span>Portapapeles: <b id="clipTxt"></b></span>
+    <span>Pegar del</span> <input type="date" id="pegDesde"> <span>al</span> <input type="date" id="pegHasta">
+    <label><input type="checkbox" id="pegLab" checked> solo días laborables no feriados</label>
+    <button id="btnPegar">Pegar en el rango</button>
+    <button class="sec" id="btnPegCancel">Cancelar</button>
+  </div>
+
+  <p class="stripTitle">Asistencia del mes</p>
+  <div class="saldoStrip">
+    <div class="fig"><span class="lbl">Horas debe trabajar · efectivas</span><span class="val" id="aPlan">0,00 <small>h</small></span><span class="subv" id="aPlanSub"></span></div>
+    <div class="fig"><span class="lbl">Trabajadas en jornada</span><span class="val" id="aTrab">0,00 <small>h</small></span></div>
+    <div class="fig rec"><span class="lbl">Acreditadas por novedades</span><span class="val" id="aRec">0,00 <small>h</small></span><span class="subv" id="aRecSub"></span></div>
+    <div class="fig hito" id="figPorTrab"><span class="lbl">Por trabajar</span><span class="val" id="aPend">0,00 <small>h</small></span></div>
+  </div>
+
+  <p class="stripTitle">Saldo de horas a favor · formato institucional</p>
+  <div class="saldoStrip">
+    <div class="fig"><span class="lbl" id="bAntLbl">Saldo horas año anterior</span><span class="val" id="bAnt">0,00 <small>h</small></span></div>
+    <div class="fig gen"><span class="lbl">HF del mes (netas de recuperación)</span><span class="val" id="sGen">0,00 <small>h</small></span><span class="subv" id="sGenSub"></span></div>
+    <div class="fig"><span class="lbl">Horas del mes a favor / en contra</span><span class="val" id="bMes">0,00 <small>h</small></span><span class="subv" id="bMesSub"></span></div>
+    <div class="fig hito" id="figSaldo"><span class="lbl">Total horas a favor</span><span class="val" id="sSaldo">0,00 <small>h</small></span><span class="subv">saldo anterior + HF netas − déficit</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="matrix-head">
+      <h2 id="matrixTitle">—</h2>
+      <p id="contractInfo">—</p>
+    </div>
+    <div class="table-scroll">
+      <table class="matrix" id="matrix">
+        <thead>
+          <tr class="grp">
+            <th class="c-fec" rowspan="2">Día</th>
+            <th rowspan="2">Jornada por contrato</th>
+            <th class="gh-real" colspan="5">Registro real</th>
+            <th class="gh-hf" colspan="3">Horas a favor · fuera de jornada</th>
+            <th class="gh-rec" colspan="4">Novedades del día · permisos y recuperación</th>
+          </tr>
+          <tr class="cols">
+            <th class="gh-real">Actividad realizada</th>
+            <th class="gh-real">Entrada</th>
+            <th class="gh-real">Salida</th>
+            <th class="gh-real">H. reales</th>
+            <th class="gh-real">Δ contrato</th>
+            <th class="gh-hf">HF inicio</th>
+            <th class="gh-hf">HF fin</th>
+            <th class="gh-hf">HF reconoc.</th>
+            <th class="gh-rec">Novedad</th>
+            <th class="gh-rec">Acredita / Consume</th>
+            <th class="gh-rec">Autoriza</th>
+            <th class="gh-rec">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panelVal">
+    <div class="panel-head">
+      <h3>Validación mensual · tres roles</h3>
+      <small style="color:var(--ink-soft)">sin los tres filtros no se genera el reporte consolidado</small>
+    </div>
+    <div class="valStatus" id="valStatus"></div>
+    <div class="valWrap" id="valWrap"></div>
+    <div class="obsBox">
+      <label for="obsMes">Novedades / observaciones del mes (se imprimen en el reporte)</label>
+      <textarea id="obsMes" placeholder="Registre aquí las novedades del período: permisos, incidentes, acuerdos, etc."></textarea>
+    </div>
+  </section>
+
+  <section class="panel" id="panelNov">
+    <div class="panel-head"><h3>Novedades y alertas del mes</h3><small style="color:var(--ink-soft)">generadas automáticamente desde la matriz</small></div>
+    <ul class="plainList" id="novList"></ul>
+  </section>
+
+  <div class="two-col">
+    <section class="panel">
+      <div class="panel-head"><h3>Kardex de horas a favor</h3><small style="color:var(--ink-soft)">todas las fechas del colaborador</small></div>
+      <table class="plain" id="kardex">
+        <thead><tr><th>Fecha de generación</th><th style="text-align:right">HF reconocidas</th><th style="text-align:right">Consumidas</th><th style="text-align:right">Disponibles</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Recuperaciones registradas</h3><small style="color:var(--ink-soft)">días completos · consumo FIFO del saldo</small></div>
+      <table class="plain" id="recLog">
+        <thead><tr><th>Fecha</th><th style="text-align:right">Consume</th><th>Compensa (imputación FIFO)</th><th>Autoriza</th><th>Justificación</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <details class="notes">
+    <summary>Reglas de cálculo del modelo</summary>
+    <ol>
+      <li><b>Fracciones válidas:</b> los minutos solo se registran como :00 o :30; desde :45 el sistema redondea a la hora completa. Cualquier otro valor (p. ej. :24) genera error y no se contabiliza.</li>
+      <li><b>Horas reales</b> = salida − entrada del registro ordinario (con la regla de fracciones aplicada); si el tramo es de 6 h o más se descuenta el almuerzo. Cada día aporta al plan como máximo su jornada contractual; el tiempo adicional se registra como horas a favor.</li>
+      <li><b>Plan mensual</b> = suma de la jornada contractual de los días laborables del mes que no son feriado. <b>Por trabajar</b> = plan − trabajadas en jornada − jornadas cubiertas por recuperación autorizada.</li>
+      <li><b>Horas a favor:</b> se registran con inicio y fin y no pueden solaparse con el registro real: cuentan solo sobre tiempo no cubierto por entrada–salida; con el registro real vacío cuentan por sí solas. En día laborable inician después de la salida contractual; en descanso o feriado el tramo se reconoce multiplicado por el factor configurado (por defecto ×2) y se computa completo, sin descuento de almuerzo.</li>
+      <li><b>Recuperación:</b> se otorga por días completos; cada día consume del saldo las horas configuradas (por defecto 24). El consumo se imputa automáticamente por FIFO a las fechas generadoras y exige justificación, autorizador y estado «Autorizada» para afectar saldo y plan.</li>
+      <li><b>Feriados:</b> administrables por año en su propia sección; marcan el día como no exigible.</li>
+      <li><b>Reporte consolidado:</b> requiere las tres validaciones (registro, revisión y aprobación) con nombre y fecha; sin ellas el sistema bloquea la impresión. La primera página reproduce el formato institucional «Registro de Asistencia» (año, colaborador/a, cargo, área, mes; actividad realizada, horarios, almuerzo y total de horas por día, con fila TOTAL y firmas), seguida del anexo técnico con saldos, matriz, novedades, kardex y recuperaciones.</li>
+      <li>Datos: «Respaldo JSON» conserva todo; «CSV del mes» exporta la matriz a Excel.</li>
+    </ol>
+  </details>
+
+  <div class="print-only" id="printNov">
+    <h1 style="font-size:12px;margin-top:6px">Novedades del mes</h1>
+    <div id="printNovBody" style="font-size:10px"></div>
+  </div>
+
+  <div class="firmas" id="firmas"></div>
+
+</main>
+
+<div id="toast" role="alert"></div>
+
+<script>
+"use strict";
+
+/* ================= Constantes ================= */
+const DIAS_JS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const ORDEN_SEM = [1,2,3,4,5,6,0];
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MES_AB = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const STORAGE_KEY = 'cahf_obra_v3';
+
+/* ================= Conexión a la nube (Google Apps Script + Sheets) =================
+   Pega aquí la URL del Web App que obtienes en la Fase 3 de la guía. Debe terminar en /exec
+   Si lo dejas vacío (''), el sistema funciona solo en este navegador (sin nube).            */
+const API_URL = 'https://script.google.com/macros/s/AKfycbw9Fqus77DRS-H6dKtY7uiM-FdOl37Y5MAuy2E6RSyGWUceblZchlhjG793BO0gimae/exec';
+/* =================================================================================== */
+
+/* Almacenamiento local de respaldo: usa window.storage si existe (vista previa) o localStorage (navegador normal). */
+function localSet(v){
+  try{ if(window.storage){ window.storage.set(STORAGE_KEY, v); return; } }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, v); }catch(e){}
+}
+async function localGet(){
+  try{ if(window.storage){ const r=await window.storage.get(STORAGE_KEY); return r && r.value ? r.value : null; } }catch(e){}
+  try{ return localStorage.getItem(STORAGE_KEY); }catch(e){ return null; }
+}
+let cloudState='';  /* '', 'sync', 'ok', 'err' */
+function setCloud(s,txt){
+  cloudState=s;
+  const c=document.getElementById('storageChip');
+  const t=document.getElementById('storageTxt');
+  if(!c||!t) return;
+  c.classList.toggle('on', s==='ok');
+  t.textContent=txt;
+}
+const K_INI='0000-00-00';
+const NOV_REC='Recuperación de horas';
+const NOV_TIPOS=['Permiso médico','Calamidad doméstica','Día de cumpleaños','Vacaciones'];
+const MSG_FRAC = 'Solo se registran fracciones de 30 minutos (:00 o :30); 45 minutos o más se redondea a la hora completa.';
+const MSG_SOLAPA = 'El tramo coincide con tiempo ya cubierto por el registro real (entrada–salida). Registre en horas a favor solo el tiempo adicional; si todo el día es trabajo extraordinario (descanso o feriado), deje el registro real vacío y use únicamente horas a favor.';
+
+/* ================= Estado ================= */
+let state = null;
+let clip = null;
+let sel = { emp:null, mes:new Date().getMonth(), anio:new Date().getFullYear() };
+
+function defaultParams(){
+  return {
+    facDescanso:2, facFeriado:2, horasDiaRec:8, validaFrac:true,
+    rol1:'Administrador del CESI', rol2:'Analista de Talento Humano', rol3:'Director del Área'
+  };
+}
+function feriados2026(){
+  return {
+    '2026-01-01':'Año Nuevo',
+    '2026-02-16':'Carnaval',
+    '2026-02-17':'Carnaval',
+    '2026-04-03':'Viernes Santo',
+    '2026-05-01':'Día del Trabajo',
+    '2026-05-24':'Batalla de Pichincha',
+    '2026-08-10':'Primer Grito de Independencia',
+    '2026-10-09':'Independencia de Guayaquil',
+    '2026-11-02':'Día de los Difuntos',
+    '2026-11-03':'Independencia de Cuenca',
+    '2026-12-25':'Navidad'
+  };
+}
+function seed(){
+  return {
+    obra:'',
+    params: defaultParams(),
+    feriados: feriados2026(),
+    empleados:[
+      {id:'e_rene',   nombre:'René Benavides',  cargo:'Administrador', area:'CESI', actividad:'Supervisión de personal, trabajo de oficina', saldoAnterior:128, dias:[3,4,5,6,0], entrada:'08:00', salida:'16:30', almuerzo:30},
+      {id:'e_maria',  nombre:'María',           cargo:'', area:'CESI', actividad:'', saldoAnterior:0, dias:[1,2,3,4,5], entrada:'08:00', salida:'16:30', almuerzo:30},
+      {id:'e_silvia', nombre:'Silvia',          cargo:'', area:'CESI', actividad:'', saldoAnterior:0, dias:[1,2,3,4,5], entrada:'08:00', salida:'16:30', almuerzo:30},
+      {id:'e_wualter',nombre:'Wualter Campaña', cargo:'', area:'CESI', actividad:'', saldoAnterior:0, dias:[1,2,3,4,5], entrada:'08:00', salida:'16:30', almuerzo:30}
+    ],
+    registros:{
+      e_rene:{
+        '2026-07-03':{entrada:'08:00',salida:'16:30',hfIni:'16:30',hfFin:'18:30'},
+        '2026-07-06':{hfIni:'08:00',hfFin:'12:30'},
+        '2026-07-07':{hfIni:'08:00',hfFin:'15:00'},
+        '2026-07-09':{nov:'Permiso médico',recAut:'F. Urbina',recJus:'Certificado médico IESS'},
+        '2026-07-16':{nov:NOV_REC,recAut:'F. Urbina',recJus:'Descanso compensatorio: compensa las horas generadas el 03, 06 y 07 de julio por avance de obra',recEst:'Autorizada'},
+        '2026-07-17':{entrada:'08:00',salida:'16:30',hfIni:'16:30',hfFin:'18:00'}
+      }
+    },
+    validaciones:{}
+  };
+}
+
+/* ================= Utilidades ================= */
+function pad(n){ return String(n).padStart(2,'0'); }
+function uid(){ return 'e_'+Math.random().toString(36).slice(2,8); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function keyDe(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
+function dowDe(k){ const p=k.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]).getDay(); }
+function fmt(n){ if(n===null||n===undefined||isNaN(n)) return '—'; return n.toFixed(2).replace('.',','); }
+function fmtSig(n){ if(n===null||n===undefined||isNaN(n)) return '—'; return (n>0?'+':'')+n.toFixed(2).replace('.',','); }
+function fechaCorta(k){ if(k===K_INI) return 'Saldo inicial'; const p=k.split('-'); return p[2]+' '+MES_AB[+p[1]-1]; }
+function fechaLarga(k){ if(k===K_INI) return 'Saldo inicial'; const p=k.split('-'); return p[2]+' '+MES_AB[+p[1]-1]+' '+p[0]; }
+function fechaDia(k){ if(k===K_INI) return 'Saldo de horas del año anterior'; return DIAS_JS[dowDe(k)]+' '+fechaLarga(k); }
+const DIAS_LG = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function fmtHM(h){ if(h===null||h===undefined||isNaN(h)) return ''; const neg=h<0; h=Math.abs(h); const H=Math.floor(h+1e-9); const M=Math.round((h-H)*60); return (neg?'-':'')+H+':'+pad(M); }
+function hoyKey(){ const h=new Date(); return keyDe(h.getFullYear(),h.getMonth(),h.getDate()); }
+function P(){ return state.params; }
+
+/* --- Regla de fracciones: 00 y 30 válidos; >=45 redondea a la hora; el resto es error --- */
+function minInvalido(t){
+  if(!t) return false;
+  if(!P().validaFrac) return false;
+  const m = +String(t).split(':')[1];
+  if(isNaN(m)) return true;
+  return !(m===0 || m===30 || m>=45);
+}
+function normMin(t){
+  if(!t) return null;
+  const p=String(t).split(':'); const h=+p[0], m=+p[1];
+  if(isNaN(h)||isNaN(m)) return null;
+  if(!P().validaFrac) return h*60+m;
+  if(m===0) return h*60;
+  if(m===30) return h*60+30;
+  if(m>=45) return (h+1)*60;   /* 45 min o más → hora completa */
+  return null;                  /* fracción no válida: no se contabiliza */
+}
+function tramoH(a,b){
+  if(!a || !b) return null;
+  const x=normMin(a), y=normMin(b);
+  if(x===null || y===null) return null;
+  let d=y-x; if(d<0) d+=1440;
+  return d/60;
+}
+
+function curEmp(){ return state.empleados.find(e=>e.id===sel.emp) || null; }
+function esFeriado(k){ return !!state.feriados[k]; }
+function esLabContrato(emp,k){ return emp.dias.includes(dowDe(k)); }
+function esExigible(emp,k){ return esLabContrato(emp,k) && !esFeriado(k); }
+function horasContrato(emp){
+  const t = tramoH(emp.entrada,emp.salida);
+  if(t===null) return 0;
+  return Math.max(0, t - (t>=6 ? (emp.almuerzo||0)/60 : 0));
+}
+function horasReales(r,emp){
+  if(minInvalido(r.entrada) || minInvalido(r.salida)) return null;
+  const t = tramoH(r.entrada,r.salida);
+  if(t===null) return null;
+  return Math.max(0, t - (t>=6 ? (emp.almuerzo||0)/60 : 0));
+}
+function diasLabel(dias){
+  const runs=[]; let ini=null, fin=null;
+  ORDEN_SEM.forEach(d=>{
+    if(dias.includes(d)){ if(ini===null) ini=d; fin=d; }
+    else if(ini!==null){ runs.push([ini,fin]); ini=null; fin=null; }
+  });
+  if(ini!==null) runs.push([ini,fin]);
+  if(!runs.length) return 'sin días asignados';
+  return runs.map(r=> r[0]===r[1] ? DIAS_JS[r[0]] : DIAS_JS[r[0]]+' a '+DIAS_JS[r[1]]).join(', ');
+}
+
+/* ================= Registros ================= */
+function getRegs(empId){ return state.registros[empId] || {}; }
+function getReg(empId,k){ return getRegs(empId)[k] || null; }
+function setRegField(empId,k,f,v){
+  if(!state.registros[empId]) state.registros[empId]={};
+  if(!state.registros[empId][k]) state.registros[empId][k]={};
+  state.registros[empId][k][f]=v;
+  const r=state.registros[empId][k];
+  const vivo=Object.keys(r).some(key=>{
+    if(key==='recEst') return r[key] && r[key]!=='Pendiente';
+    return r[key];
+  });
+  if(!vivo) delete state.registros[empId][k];
+  persist();
+}
+
+/* --- Evaluación de horas a favor de un día --- */
+function evalHF(emp,k,r){
+  const out={tramo:null,factor:1,rec:0,errs:[]};
+  if(!r.hfIni && !r.hfFin) return out;
+  if(minInvalido(r.hfIni)||minInvalido(r.hfFin)){ out.errs.push('frac'); return out; }
+  /* Solapamiento con el registro real: las HF no pueden cubrir tiempo ya registrado.
+     Con registro real vacío, las HF cuentan por sí solas. */
+  const ri = (r.entrada && !minInvalido(r.entrada)) ? normMin(r.entrada) : null;
+  const rsRaw = (r.salida && !minInvalido(r.salida)) ? normMin(r.salida) : null;
+  const hi = normMin(r.hfIni), hfRaw = normMin(r.hfFin);
+  if(ri!==null && hi!==null){
+    const rs = rsRaw===null ? null : (rsRaw<=ri ? rsRaw+1440 : rsRaw);
+    if(hi===ri || (rs!==null && hi>ri && hi<rs)){ out.errs.push('solapa'); return out; }
+    if(rs!==null && hfRaw!==null){
+      const hfLin = hfRaw<=hi ? hfRaw+1440 : hfRaw;
+      if(Math.max(ri,hi) < Math.min(rs,hfLin)){ out.errs.push('solapa'); return out; }
+    }
+  }
+  let t=tramoH(r.hfIni,r.hfFin);
+  if(t===null) return out;
+  if(t>=6) t=Math.max(0,t-(emp.almuerzo||0)/60);
+  if(t<=0){ out.errs.push('tramo'); return out; }
+  const fer=esFeriado(k), lab=esLabContrato(emp,k);
+  if(fer) out.factor=+P().facFeriado||1;
+  else if(!lab) out.factor=+P().facDescanso||1;
+  if(lab && !fer){
+    const salC=normMin(emp.salida), ini=normMin(r.hfIni);
+    if(salC!==null && ini!==null && ini<salC){ out.errs.push('jornada'); return out; }
+  }
+  out.tramo=t; out.rec=t*out.factor;
+  return out;
+}
+
+/* --- Libro de horas a favor con asignación FIFO por días de recuperación --- */
+function ledger(empId){
+  const emp=state.empleados.find(e=>e.id===empId);
+  const regs=getRegs(empId), gen={}, recs=[];
+  const hRec=+P().horasDiaRec||8;
+  const ini=+emp.saldoAnterior||0;
+  if(ini>0) gen[K_INI]=ini;
+  Object.keys(regs).sort().forEach(k=>{
+    const r=regs[k];
+    const hf=evalHF(emp,k,r);
+    if(hf.rec>0) gen[k]=hf.rec;
+    if(r.nov===NOV_REC) recs.push({fecha:k,horas:hRec,est:r.recEst||'Pendiente',aut:r.recAut||'',jus:r.recJus||'',alloc:[],faltante:0,proy:false});
+  });
+  const rem={}; Object.keys(gen).forEach(k=>rem[k]=gen[k]);
+  const asignar=(rec,bolsa)=>{
+    let need=rec.horas;
+    const mesRec=rec.fecha.slice(0,7);
+    /* Prioridad: 1) HF generadas en el mismo mes de la recuperación; 2) demás HF del período por antigüedad;
+       3) saldo del año anterior al final. Solo fuentes hasta la fecha de la recuperación. */
+    const fuentes=Object.keys(bolsa).filter(g=>g<=rec.fecha).sort((a,b)=>{
+      const aIni=a===K_INI, bIni=b===K_INI;
+      if(aIni!==bIni) return aIni?1:-1;                 /* saldo anterior siempre al final */
+      const aMes=a.slice(0,7)===mesRec, bMes=b.slice(0,7)===mesRec;
+      if(aMes!==bMes) return aMes?-1:1;                 /* HF del mismo mes primero */
+      return a<b?-1:1;                                  /* luego por antigüedad */
+    });
+    fuentes.forEach(g=>{
+      if(need<=0.0001) return;
+      const take=Math.min(bolsa[g],need);
+      if(take>0.0001){ rec.alloc.push({g,h:take}); bolsa[g]-=take; need-=take; }
+    });
+    rec.faltante=Math.max(0,need);
+  };
+  recs.filter(x=>x.est==='Autorizada').forEach(x=>asignar(x,rem));
+  const rem2={}; Object.keys(rem).forEach(k=>rem2[k]=rem[k]);
+  recs.filter(x=>x.est==='Pendiente').forEach(x=>{x.proy=true; asignar(x,rem2);});
+  const usado={}; Object.keys(gen).forEach(k=>usado[k]=gen[k]-rem[k]);
+  let saldo=0; Object.keys(rem).forEach(k=>saldo+=rem[k]);
+  return {gen,recs,usado,rem,saldo};
+}
+
+/* --- Plan mensual de horas --- */
+function planMes(emp,anio,mes){
+  const hc=horasContrato(emp);
+  const nd=new Date(anio,mes+1,0).getDate();
+  let plan=0, trab=0, cub=0, diasLab=0;
+  for(let d=1;d<=nd;d++){
+    const k=keyDe(anio,mes,d);
+    if(!esExigible(emp,k)) continue;   /* excluye descansos y feriados; los permisos NO afectan */
+    plan+=hc; diasLab++;
+    const r=getReg(emp.id,k)||{};
+    if(r.nov && (r.nov!==NOV_REC || (r.recEst||'Pendiente')==='Autorizada')){ cub+=hc; continue; }
+    const hR=horasReales(r,emp);
+    if(hR!==null) trab+=Math.min(hR,hc);
+  }
+  return {plan,trab,cub,pend:plan-trab-cub,diasLab};
+}
+
+/* --- Balance del mes y total acumulado (módulos tipo hoja institucional) --- */
+function mesBalance(emp,anio,mes){
+  const hc=horasContrato(emp);
+  const nd=new Date(anio,mes+1,0).getDate();
+  const pl=planMes(emp,anio,mes);
+  let reales=0, perm=0, hf=0;
+  const porNov={};
+  for(let d=1;d<=nd;d++){
+    const k=keyDe(anio,mes,d);
+    const r=getReg(emp.id,k); if(!r) continue;
+    const hR=horasReales(r,emp);
+    if(hR!==null) reales+=hR;
+    if(r.nov && esExigible(emp,k)){ perm+=hc; porNov[r.nov]=(porNov[r.nov]||0)+hc; }
+    const e=evalHF(emp,k,r);
+    if(e.rec>0) hf+=e.rec;
+  }
+  const acred=reales+perm+hf;
+  /* Consumo de recuperación imputado a HF generadas en este mismo mes */
+  const led=ledger(emp.id);
+  const pref=anio+'-'+pad(mes+1);
+  let consMesHF=0;
+  led.recs.forEach(x=>{ x.alloc.forEach(a=>{ if(a.g!==K_INI && a.g.startsWith(pref)) consMesHF+=a.h; }); });
+  const hfNeto=hf-consMesHF;                       /* HF del mes netas de recuperación */
+  const cumplido=reales+perm;                      /* asistencia + permisos que cubren jornada */
+  const deficit=Math.max(0, pl.plan-cumplido);     /* tiempo que quedó debiendo */
+  /* Aporte al acumulado: HF netas menos el déficit de asistencia */
+  const aporte=hfNeto-deficit;
+  return {plan:pl.plan, reales, perm, hf, hfNeto, consMesHF, acred, deficit, af:acred-pl.plan, aporte, porNov};
+}
+function totalAF(emp,anio,mes){
+  const corte=anio+'-'+pad(mes+1);
+  let t=+emp.saldoAnterior||0;
+  const meses=new Set();
+  Object.keys(getRegs(emp.id)).forEach(k=>{ const m=k.slice(0,7); if(m<=corte) meses.add(m); });
+  meses.forEach(m=>{ const q=m.split('-'); t+=mesBalance(emp,+q[0],+q[1]-1).aporte; });
+  return t;
+}
+
+/* ================= Persistencia ================= */
+let pT=null;
+function persist(){
+  const snapshot=JSON.stringify(state);
+  localSet(snapshot);                 /* respaldo local inmediato, siempre */
+  if(!API_URL) return;                /* sin nube configurada: solo local */
+  clearTimeout(pT);
+  setCloud('sync','Guardando en la nube…');
+  pT=setTimeout(async ()=>{
+    try{
+      const resp=await fetch(API_URL,{ method:'POST', body:JSON.stringify({action:'save', data:snapshot}) });
+      const out=await resp.json();
+      if(out && out.ok) setCloud('ok','Guardado en la nube · '+new Date().toLocaleTimeString('es-EC'));
+      else throw new Error('respuesta no válida');
+    }catch(e){
+      setCloud('err','Sin conexión con la nube · cambios guardados solo en este equipo');
+      toast('<b>No se pudo guardar en la nube.</b> Tus cambios quedaron en este equipo; se reintentará al siguiente cambio. Revisa tu conexión o la URL del servidor.');
+    }
+  },600);
+}
+async function loadState(){
+  /* 1) Si hay nube configurada, intentar leer de ahí primero */
+  if(API_URL){
+    try{
+      const resp=await fetch(API_URL,{ method:'POST', body:JSON.stringify({action:'load'}) });
+      const out=await resp.json();
+      if(out && out.ok){
+        if(out.data){
+          const p=JSON.parse(out.data);
+          if(p && p.empleados && p.empleados.length){ localSet(out.data); return p; }
+        }
+        return null; /* nube vacía: se sembrará el ejemplo */
+      }
+      throw new Error('respuesta no válida');
+    }catch(e){
+      /* si la nube falla, caemos al respaldo local para no bloquear el trabajo */
+      const loc=await localGet();
+      if(loc){ try{ const p=JSON.parse(loc); if(p&&p.empleados&&p.empleados.length) return p; }catch(_){} }
+      return null;
+    }
+  }
+  /* 2) Sin nube: usar almacenamiento local */
+  const loc=await localGet();
+  if(loc){ try{ const p=JSON.parse(loc); if(p&&p.empleados&&p.empleados.length) return p; }catch(e){} }
+  return null;
+}
+function migrar(st){
+  if(!st.params) st.params=defaultParams();
+  Object.keys(defaultParams()).forEach(k=>{ if(st.params[k]===undefined) st.params[k]=defaultParams()[k]; });
+  if(!st.feriados) st.feriados=feriados2026();
+  if(!st.validaciones) st.validaciones={};
+  if(!st.registros) st.registros={};
+  (st.empleados||[]).forEach(e=>{ if(e.cargo===undefined) e.cargo=''; if(e.area===undefined) e.area=''; if(e.actividad===undefined) e.actividad=''; if(e.saldoAnterior===undefined) e.saldoAnterior=0; });
+  Object.keys(st.registros||{}).forEach(id=>{ Object.keys(st.registros[id]).forEach(k=>{ const r=st.registros[id][k]; if(r.recDia){ r.nov=NOV_REC; delete r.recDia; } }); });
+  return st;
+}
+function chip(){
+  const c=document.getElementById('storageChip');
+  const t=document.getElementById('storageTxt');
+  if(!c||!t) return;
+  if(API_URL){
+    if(cloudState==='') setCloud('ok','Conectado a la nube');
+  } else {
+    const hay = (typeof window!=='undefined' && window.storage) || (typeof localStorage!=='undefined');
+    c.classList.toggle('on', !!hay);
+    t.textContent = hay ? 'Guardado en este equipo · sin nube (exporte JSON como respaldo)' : 'Sin guardado en este entorno · exporte JSON como respaldo';
+  }
+}
+
+/* ================= Toast ================= */
+let toastT=null;
+function toast(html,ok){
+  const t=document.getElementById('toast');
+  t.innerHTML=html; t.classList.toggle('ok',!!ok); t.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),7000);
+}
+
+/* ================= Validación mensual ================= */
+function valKey(){ return sel.anio+'-'+pad(sel.mes+1); }
+function getVal(create){
+  const empId=sel.emp, k=valKey();
+  if(!state.validaciones[empId]) { if(!create) return null; state.validaciones[empId]={}; }
+  const v=state.validaciones[empId];
+  if(!v[k]){ if(!create) return null; v[k]={reg:{ok:false,nombre:'',fecha:''},rev:{ok:false,nombre:'',fecha:''},apr:{ok:false,nombre:'',fecha:''},obs:''}; }
+  return v[k];
+}
+function valFaltantes(){
+  const v=getVal(false)||{reg:{},rev:{},apr:{}};
+  const f=[];
+  if(!(v.reg&&v.reg.ok&&(v.reg.nombre||'').trim())) f.push('Registro · '+P().rol1);
+  if(!(v.rev&&v.rev.ok&&(v.rev.nombre||'').trim())) f.push('Revisión · '+P().rol2);
+  if(!(v.apr&&v.apr.ok&&(v.apr.nombre||'').trim())) f.push('Aprobación · '+P().rol3);
+  return f;
+}
+
+/* ================= Render: configuración ================= */
+function renderConfig(){
+  const box=document.getElementById('empList');
+  box.innerHTML=state.empleados.map(e=>{
+    const chips=ORDEN_SEM.map(d=>'<button type="button" class="chip'+(e.dias.includes(d)?' on':'')+'" data-emp="'+e.id+'" data-d="'+d+'">'+DIAS_JS[d]+'</button>').join('');
+    return '<div class="empCard">'+
+      '<label>Colaborador/a<input class="empNom" data-emp="'+e.id+'" value="'+esc(e.nombre)+'"></label>'+
+      '<label>Cargo<input class="empCargo" data-emp="'+e.id+'" data-cf="cargo" value="'+esc(e.cargo||'')+'"></label>'+
+      '<label>Área<input class="empArea" data-emp="'+e.id+'" data-cf="area" value="'+esc(e.area||'')+'"></label>'+
+      '<div class="chips">'+chips+'</div>'+
+      '<label>Entrada<input type="time" data-emp="'+e.id+'" data-cf="entrada" value="'+esc(e.entrada)+'"></label>'+
+      '<label>Salida<input type="time" data-emp="'+e.id+'" data-cf="salida" value="'+esc(e.salida)+'"></label>'+
+      '<label>Almuerzo (min)<input type="number" min="0" step="15" style="width:80px" data-emp="'+e.id+'" data-cf="almuerzo" value="'+esc(e.almuerzo)+'"></label>'+
+      '<label>Saldo HF año anterior (h)<input type="number" step="0.5" style="width:110px" data-emp="'+e.id+'" data-cf="saldoAnterior" value="'+esc(e.saldoAnterior||0)+'"></label>'+
+      '<label>Actividad habitual (para la hoja impresa)<input class="empAct" data-emp="'+e.id+'" data-cf="actividad" value="'+esc(e.actividad||'')+'"></label>'+
+      '<span class="hDia"><b>'+fmt(horasContrato(e))+'</b> h/día</span>'+
+      '<button class="ghost danger" data-del="'+e.id+'">Eliminar</button>'+
+    '</div>';
+  }).join('');
+}
+function renderParams(){
+  const p=P();
+  document.getElementById('pFacDesc').value=p.facDescanso;
+  document.getElementById('pFacFer').value=p.facFeriado;
+  document.getElementById('pHorasRec').value=p.horasDiaRec;
+  document.getElementById('pValidaFrac').checked=!!p.validaFrac;
+  document.getElementById('pRol1').value=p.rol1;
+  document.getElementById('pRol2').value=p.rol2;
+  document.getElementById('pRol3').value=p.rol3;
+}
+function renderEmpSelect(){
+  const s=document.getElementById('selEmp');
+  s.innerHTML=state.empleados.map(e=>'<option value="'+e.id+'"'+(e.id===sel.emp?' selected':'')+'>'+esc(e.nombre)+'</option>').join('');
+}
+function renderMonthControls(){
+  const s=document.getElementById('selMes');
+  s.innerHTML=MESES.map((m,i)=>'<option value="'+i+'"'+(i===sel.mes?' selected':'')+'>'+m+'</option>').join('');
+  document.getElementById('selAnio').value=sel.anio;
+}
+
+/* ================= Render: feriados ================= */
+function renderFeriados(){
+  const anios=[...new Set(Object.keys(state.feriados).map(k=>k.slice(0,4)))].sort();
+  if(!anios.includes(String(sel.anio))) anios.push(String(sel.anio));
+  anios.sort();
+  const sf=document.getElementById('ferAnio');
+  const cur=sf.value || String(sel.anio);
+  sf.innerHTML=anios.map(a=>'<option'+(a===cur?' selected':'')+'>'+a+'</option>').join('');
+  const y=sf.value;
+  const ks=Object.keys(state.feriados).filter(k=>k.startsWith(y)).sort();
+  const tb=document.getElementById('ferBody');
+  tb.innerHTML=ks.length?ks.map(k=>
+    '<tr><td class="mono">'+k+' <span style="color:var(--ink-soft)">'+DIAS_JS[dowDe(k)]+'</span></td><td>'+esc(state.feriados[k])+'</td><td><button data-ferdel="'+k+'" title="Quitar">✕</button></td></tr>'
+  ).join(''):'<tr><td colspan="3" class="vacio">Sin feriados cargados para '+esc(y)+'. Agregue con el formulario o importe la lista anual.</td></tr>';
+}
+
+/* ================= Render: matriz ================= */
+function renderMatrix(){
+  const emp=curEmp(); if(!emp) return;
+  const hc=horasContrato(emp);
+  const nd=new Date(sel.anio,sel.mes+1,0).getDate();
+  const hoy=hoyKey();
+  let html='';
+  for(let d=1; d<=nd; d++){
+    const k=keyDe(sel.anio,sel.mes,d);
+    const dow=dowDe(k);
+    const lab=emp.dias.includes(dow);
+    const fer=esFeriado(k);
+    const r=getReg(emp.id,k)||{};
+    const est=r.recEst||'Pendiente';
+    const cls=(fer?'fer ':(lab?'':'desc '))+(k===hoy?'hoy':'');
+    let con;
+    if(fer) con='<em>Feriado</em><span class="fname">'+esc(state.feriados[k])+'</span>';
+    else if(lab) con=esc(emp.entrada)+'–'+esc(emp.salida)+' · '+fmt(hc)+' h';
+    else con='<em>Descanso</em>';
+    html+='<tr class="'+cls+'" data-k="'+k+'">'+
+      '<td class="c-fec">'+pad(d)+'<button type="button" class="copyBtn" data-copy="'+k+'" title="Copiar horario y actividad de este día">⧉</button><span>'+DIAS_JS[dow]+'</span></td>'+
+      '<td class="c-con">'+con+'</td>'+
+      '<td class="g-real"><input type="text" class="act" data-f="act" placeholder="Actividad" value="'+esc(r.act||'')+'"></td>'+
+      '<td class="g-real"><input type="time" data-f="entrada" value="'+esc(r.entrada||'')+'"></td>'+
+      '<td class="g-real"><input type="time" data-f="salida" value="'+esc(r.salida||'')+'"></td>'+
+      '<td class="g-real numcell" id="hr_'+k+'"></td>'+
+      '<td class="g-real numcell" id="df_'+k+'"></td>'+
+      '<td class="g-hf"><input type="time" data-f="hfIni" value="'+esc(r.hfIni||'')+'"></td>'+
+      '<td class="g-hf"><input type="time" data-f="hfFin" value="'+esc(r.hfFin||'')+'"></td>'+
+      '<td class="g-hf numcell" id="hf_'+k+'"></td>'+
+      '<td class="g-rec"><select data-f="nov">'+['',...NOV_TIPOS,NOV_REC].map(o=>'<option value="'+esc(o)+'"'+(o===(r.nov||'')?' selected':'')+'>'+(o||'—')+'</option>').join('')+'</select></td>'+
+      '<td class="g-rec numcell" id="rc_'+k+'"></td>'+
+
+      '<td class="g-rec"><input type="text" class="aut" data-f="recAut" placeholder="Nombre" value="'+esc(r.recAut||'')+'"></td>'+
+
+      '<td class="g-rec"><select class="est" data-f="recEst" data-est="'+est+'">'+
+        ['Pendiente','Autorizada','Rechazada'].map(o=>'<option'+(o===est?' selected':'')+'>'+o+'</option>').join('')+
+      '</select></td>'+
+    '</tr>';
+  }
+  document.getElementById('matrixBody').innerHTML=html;
+  patchAll();
+  document.getElementById('matrixTitle').textContent=MESES[sel.mes]+' '+sel.anio+' — '+emp.nombre;
+  document.getElementById('contractInfo').textContent='Jornada contractual: '+diasLabel(emp.dias)+' · '+emp.entrada+'–'+emp.salida+' · almuerzo '+(emp.almuerzo||0)+' min · '+fmt(hc)+' h/día · Novedades acreditan '+fmt(hc)+' h/día · Recuperación consume '+fmt(+P().horasDiaRec)+' h de saldo por día (FIFO desde el saldo anterior)';
+}
+
+function patchAll(){
+  const emp=curEmp(); if(!emp) return;
+  const led=ledger(emp.id);
+  const nd=new Date(sel.anio,sel.mes+1,0).getDate();
+  for(let d=1; d<=nd; d++) patchRow(keyDe(sel.anio,sel.mes,d),led);
+}
+
+function patchRow(k,led){
+  const emp=curEmp(); if(!emp) return;
+  led = led || ledger(emp.id);
+  const r=getReg(emp.id,k)||{};
+  const lab=emp.dias.includes(dowDe(k));
+  const fer=esFeriado(k);
+  const exig=lab&&!fer;
+  const hc=horasContrato(emp);
+  const tr=document.querySelector('tr[data-k="'+k+'"]'); if(!tr) return;
+
+  /* Registro real */
+  const badE=minInvalido(r.entrada), badS=minInvalido(r.salida);
+  tr.querySelector('input[data-f="entrada"]').classList.toggle('badfield',badE);
+  tr.querySelector('input[data-f="salida"]').classList.toggle('badfield',badS);
+  const hR=horasReales(r,emp);
+  const elHr=document.getElementById('hr_'+k);
+  if(badE||badS){ elHr.innerHTML='<span class="warn" title="'+esc(MSG_FRAC)+'">▲</span>'; elHr.className='g-real numcell err'; }
+  else {
+    let extra='';
+    if(hR!==null && !exig) extra=' <span class="warn" title="Día no exigible: el trabajo de este día se reconoce en horas a favor con su factor.">▲</span>';
+    elHr.innerHTML=fmt(hR)+extra;
+    elHr.className='g-real numcell';
+  }
+  const delta=(hR===null||badE||badS)?null:hR-(exig?hc:0);
+  const elDf=document.getElementById('df_'+k);
+  elDf.textContent=(delta===null)?'—':fmtSig(delta);
+  elDf.className='g-real numcell'+(delta>0.001?' pos':(delta<-0.001?' neg':''));
+
+  /* Horas a favor */
+  const badHI=minInvalido(r.hfIni), badHF=minInvalido(r.hfFin);
+  tr.querySelector('input[data-f="hfIni"]').classList.toggle('badfield',badHI);
+  tr.querySelector('input[data-f="hfFin"]').classList.toggle('badfield',badHF);
+  const hf=evalHF(emp,k,r);
+  const elHf=document.getElementById('hf_'+k);
+  if(hf.errs.length){
+    const msg=hf.errs.includes('frac')?MSG_FRAC:
+      hf.errs.includes('solapa')?MSG_SOLAPA:
+      hf.errs.includes('jornada')?('Las horas a favor inician después de la salida contractual ('+emp.salida+'); el tramo dentro de la jornada no se contabiliza.'):
+      'El tramo de horas a favor no es válido.';
+    elHf.innerHTML='<span class="warn" title="'+esc(msg)+'">▲</span>';
+    elHf.className='g-hf numcell err';
+    tr.querySelector('input[data-f="hfIni"]').classList.add('badfield');
+    tr.querySelector('input[data-f="hfFin"]').classList.add('badfield');
+  } else if(hf.rec>0){
+    elHf.innerHTML=fmt(hf.rec)+(hf.factor>1?'<span class="sub">'+fmt(hf.tramo)+' ×'+String(hf.factor).replace('.',',')+'</span>':'');
+    elHf.className='g-hf numcell credit';
+  } else { elHf.textContent='—'; elHf.className='g-hf numcell'; }
+
+  /* Recuperación */
+  const nov=r.nov||'';
+  const rec=led.recs.find(x=>x.fecha===k);
+  const elRc=document.getElementById('rc_'+k);
+  if(nov===NOV_REC && rec){
+    let warn='';
+    if(!exig) warn='La recuperación se toma en un día laborable no feriado.';
+    if(rec.faltante>0.001) warn='Saldo insuficiente a esa fecha: faltan '+fmt(rec.faltante)+' h generadas hasta ese día.';
+    if(hR!==null) warn=(warn?warn+' ':'')+'El día de recuperación no debería registrar jornada trabajada.';
+    const detalle=rec.alloc.map(a=>fechaCorta(a.g)+' '+fmt(a.h)).join(' · ');
+    const info=(rec.proy?'(pendiente) ':'')+'Imputación FIFO: '+(detalle||'sin saldo que imputar')+(rec.faltante>0.001?' · faltan '+fmt(rec.faltante)+' h':'');
+    const icon=warn?(' <span class="warn" title="'+esc(info+' — '+warn)+'">▲</span>'):(' <span class="warn" style="color:var(--ink-soft);cursor:help" title="'+esc(info)+'">ⓘ</span>');
+    elRc.innerHTML=fmt(rec.horas)+icon;
+    elRc.className='g-rec numcell'+((rec.faltante>0.001||!exig)?' err':' debit');
+  } else if(nov){
+    let warn='';
+    if(!exig) warn='La novedad acredita jornada solo en días laborables no feriados.';
+    if(hR!==null) warn=(warn?warn+' ':'')+'Día con novedad y jornada registrada; verifique.';
+    elRc.innerHTML='+'+fmt(exig?hc:0)+(warn?' <span class="warn" title="'+esc(warn)+'">▲</span>':'');
+    elRc.className='g-rec numcell'+((!exig||hR!==null)?' err':' credit');
+  } else { elRc.textContent='—'; elRc.className='g-rec numcell'; }
+
+  const autInp=tr.querySelector('input[data-f="recAut"]');
+  const necesita=nov===NOV_REC && (r.recEst||'Pendiente')!=='Rechazada';
+  autInp.classList.toggle('badfield', !!(necesita && (r.recEst==='Autorizada') && !(r.recAut||'').trim()));
+}
+
+/* ================= Render: resúmenes ================= */
+function renderResumen(){
+  const emp=curEmp(); if(!emp) return;
+  const led=ledger(emp.id);
+  const pref=sel.anio+'-'+pad(sel.mes+1);
+  const pl=planMes(emp,sel.anio,sel.mes);
+
+  document.getElementById('aPlan').innerHTML=fmt(pl.plan)+' <small>h</small>';
+  document.getElementById('aTrab').innerHTML=fmt(pl.trab)+' <small>h</small>';
+  document.getElementById('aRec').innerHTML=fmt(pl.cub)+' <small>h</small>';
+  document.getElementById('aPend').innerHTML=fmt(pl.pend)+' <small>h</small>';
+  document.getElementById('figPorTrab').classList.toggle('negativo',pl.pend>0.001);
+
+  const bal=mesBalance(emp,sel.anio,sel.mes);
+  const tot=totalAF(emp,sel.anio,sel.mes);
+  let genMes=0;
+  Object.keys(led.gen).forEach(k=>{ if(k!==K_INI && k.startsWith(pref)) genMes+=led.gen[k]; });
+  const genMesNeto=bal.hfNeto;
+  const consMesHF=bal.consMesHF;
+  document.getElementById('aPlanSub').textContent='referencial estático (no varía por permisos): '+pl.diasLab+' días laborables no feriados × '+fmt(horasContrato(emp))+' h';
+  document.getElementById('bAntLbl').textContent='Saldo horas año anterior ('+(sel.anio-1)+')';
+  document.getElementById('bAnt').innerHTML=fmt(+emp.saldoAnterior||0)+' <small>h</small>';
+  const elSG=document.getElementById('sGen');
+  elSG.innerHTML=fmt(genMesNeto)+' <small>h</small>';
+  document.getElementById('sGenSub') && (document.getElementById('sGenSub').textContent=consMesHF>0.001?('generadas '+fmt(genMes)+' − consumidas '+fmt(consMesHF)):'');
+  document.getElementById('bMes').innerHTML=fmtSig(bal.af)+' <small>h</small>';
+    {
+    const orden=[...NOV_TIPOS, NOV_REC];
+    const partes=orden.filter(t=>bal.porNov[t]>0.001).map(t=>t+' '+fmt(bal.porNov[t]));
+    document.getElementById('aRecSub').textContent=partes.length?partes.join(' · '):'sin novedades en el mes';
+  }
+  document.getElementById('bMesSub').textContent='indicador: acreditadas '+fmt(bal.acred)+' − efectivas '+fmt(bal.plan)+(bal.deficit>0.001?(' · déficit '+fmt(bal.deficit)+' h descuenta del acumulado'):'');
+  document.getElementById('sSaldo').innerHTML=fmt(tot)+' <small>h</small>';
+  document.getElementById('figSaldo').classList.toggle('negativo',tot<-0.001);
+
+  const v=getVal(false);
+  document.getElementById('pmObra').textContent='Obra / Proyecto: '+(state.obra||'—');
+  document.getElementById('pmEmp').textContent='Colaborador: '+emp.nombre+(emp.cargo?' · Cargo: '+emp.cargo:'')+(emp.area?' · Área: '+emp.area:'')+' · Período: '+MESES[sel.mes]+' '+sel.anio+' · Jornada: '+diasLabel(emp.dias)+' '+emp.entrada+'–'+emp.salida;
+  document.getElementById('pmSaldos').textContent='Horas efectivas: '+fmt(pl.plan)+' h · Trabajadas (acreditadas): '+fmt(bal.acred)+' h · Mes a favor/en contra: '+fmtSig(bal.af)+' h · Por trabajar: '+fmt(pl.pend)+' h · Saldo año anterior: '+fmt(+emp.saldoAnterior||0)+' h · Total horas a favor: '+fmt(tot)+' h · Impreso el '+new Date().toLocaleDateString('es-EC');
+}
+
+function novedadesMes(){
+  const emp=curEmp(); const led=ledger(emp.id);
+  const pref=sel.anio+'-'+pad(sel.mes+1);
+  const items=[];
+  Object.keys(state.feriados).sort().forEach(k=>{
+    if(k.startsWith(pref)) items.push({t:'fe',html:'<span class="tag fe">Feriado</span>'+fechaDia(k)+' — '+esc(state.feriados[k])});
+  });
+  Object.keys(led.gen).sort().forEach(k=>{
+    if(!k.startsWith(pref)) return;
+    const r=getReg(emp.id,k)||{}; const hf=evalHF(emp,k,r);
+    items.push({t:'hf',html:'<span class="tag hf">HF</span>'+fechaDia(k)+': '+r.hfIni+'–'+r.hfFin+' = '+fmt(hf.tramo)+' h'+(hf.factor>1?' ×'+String(hf.factor).replace('.',',')+' = <b>'+fmt(hf.rec)+' h</b>':'')});
+  });
+  {const ndp=new Date(sel.anio,sel.mes+1,0).getDate();
+  for(let d=1; d<=ndp; d++){ const k=keyDe(sel.anio,sel.mes,d); const rr=getReg(emp.id,k); if(rr&&rr.nov&&rr.nov!==NOV_REC) items.push({t:'rc',html:'<span class="tag rc">Novedad</span>'+fechaDia(k)+': '+esc(rr.nov)+' — acredita '+fmt(horasContrato(emp))+' h'+(rr.recJus?' · '+esc(rr.recJus):'')}); }}
+  led.recs.forEach(x=>{
+    if(!x.fecha.startsWith(pref)) return;
+    const det=x.alloc.map(a=>fechaCorta(a.g)+' ('+fmt(a.h)+' h)').join(', ');
+    items.push({t:'rc',html:'<span class="tag rc">Recuperación</span>'+fechaDia(x.fecha)+': día completo, consume '+fmt(x.horas)+' h — compensa '+(det||'—')+(x.faltante>0.001?' <b style="color:var(--alert)">(faltan '+fmt(x.faltante)+' h)</b>':'')+' · Autoriza: '+(esc(x.aut)||'—')+' · '+x.est+(x.jus?' · '+esc(x.jus):'')});
+  });
+  /* Alertas */
+  const nd=new Date(sel.anio,sel.mes+1,0).getDate();
+  for(let d=1; d<=nd; d++){
+    const k=keyDe(sel.anio,sel.mes,d);
+    const r=getReg(emp.id,k); if(!r) continue;
+    const lab=emp.dias.includes(dowDe(k)), fer=esFeriado(k), exig=lab&&!fer;
+    if(minInvalido(r.entrada)||minInvalido(r.salida)||minInvalido(r.hfIni)||minInvalido(r.hfFin))
+      items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': minutos no válidos; '+MSG_FRAC.toLowerCase()});
+    const hf=evalHF(emp,k,r);
+    if(hf.errs.includes('jornada')) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': las horas a favor deben iniciar después de la salida contractual ('+emp.salida+').'});
+    if(hf.errs.includes('solapa')) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': el tramo de HF se solapa con el registro real; registre en horas a favor solo el tiempo no cubierto por entrada–salida.'});
+    if(r.nov===NOV_REC){
+      if(!exig) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': la recuperación debe tomarse en un día laborable no feriado.'});
+      if(!(r.recJus||'').trim()) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': la recuperación no tiene justificación.'});
+      if((r.recEst||'Pendiente')==='Autorizada'&&!(r.recAut||'').trim()) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': recuperación autorizada sin nombre de quien autoriza.'});
+      const rec=led.recs.find(x=>x.fecha===k);
+      if(rec&&rec.faltante>0.001) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': saldo insuficiente para el día completo (faltan '+fmt(rec.faltante)+' h).'});
+      if(horasReales(r,emp)!==null) items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': día de recuperación con jornada registrada; verifique.'});
+    }
+    if(!exig && horasReales(r,emp)!==null && !r.nov)
+      items.push({t:'al',html:'<span class="tag alr">Alerta</span>'+fechaDia(k)+': registro ordinario en día no exigible; ese trabajo se reconoce como horas a favor.'});
+  }
+  const falt=valFaltantes();
+  if(falt.length) items.push({t:'al',html:'<span class="tag alr">Alerta</span>Validación mensual incompleta: falta '+falt.map(esc).join('; ')+'.'});
+  return items;
+}
+function renderNovedades(){
+  const items=novedadesMes();
+  const ul=document.getElementById('novList');
+  ul.innerHTML=items.length?items.map(i=>'<li class="'+(i.t==='al'?'al':'')+'">'+i.html+'</li>').join(''):'<li class="vacio">Sin novedades ni alertas en el mes.</li>';
+  const v=getVal(false);
+  document.getElementById('printNovBody').innerHTML=
+    (items.length?('<ul style="margin:2px 0;padding-left:16px">'+items.map(i=>'<li>'+i.html+'</li>').join('')+'</ul>'):'<p>Sin novedades registradas.</p>')+
+    (v&&v.obs?'<p><b>Observaciones:</b> '+esc(v.obs)+'</p>':'');
+}
+
+function renderKardex(){
+  const emp=curEmp(); if(!emp) return;
+  const led=ledger(emp.id);
+  const kb=document.querySelector('#kardex tbody');
+  const ks=Object.keys(led.gen).sort();
+  if(!ks.length){
+    kb.innerHTML='<tr><td colspan="4" class="vacio">Sin horas a favor registradas.</td></tr>';
+  } else {
+    let g=0,u=0;
+    kb.innerHTML=ks.map(k=>{
+      const gen=led.gen[k], us=led.usado[k]||0, disp=gen-us;
+      g+=gen; u+=us;
+      return '<tr><td>'+fechaDia(k)+'</td><td class="num mono">'+fmt(gen)+'</td><td class="num mono">'+fmt(us)+'</td><td class="num mono'+(disp<-0.001?' neg':'')+'">'+fmt(disp)+'</td></tr>';
+    }).join('')+
+    '<tr class="total"><td>Total</td><td class="num mono">'+fmt(g)+'</td><td class="num mono">'+fmt(u)+'</td><td class="num mono">'+fmt(g-u)+'</td></tr>';
+  }
+  const rb=document.querySelector('#recLog tbody');
+  if(!led.recs.length){
+    rb.innerHTML='<tr><td colspan="6" class="vacio">Sin recuperaciones registradas.</td></tr>';
+  } else {
+    rb.innerHTML=led.recs.map(x=>{
+      const det=x.alloc.map(a=>fechaCorta(a.g)+' ('+fmt(a.h)+' h)').join(', ');
+      return '<tr><td>'+fechaDia(x.fecha)+'</td><td class="num mono">'+fmt(x.horas)+'</td><td>'+(x.proy?'<span style="color:var(--ink-soft)">(proyección)</span> ':'')+(det||'<span class="vacio">sin saldo</span>')+(x.faltante>0.001?' <span class="neg">· faltan '+fmt(x.faltante)+' h</span>':'')+'</td><td>'+(esc(x.aut)||'<span class="vacio">—</span>')+'</td><td style="max-width:320px;white-space:normal">'+(esc(x.jus)||'<span class="vacio">—</span>')+'</td><td><span class="badge '+x.est+'">'+x.est+'</span></td></tr>';
+    }).join('');
+  }
+}
+
+function updateValMeta(){
+  const v=getVal(false)||{reg:{},rev:{},apr:{}};
+  const p=P();
+  const pasos=[['reg','Registro',p.rol1],['rev','Revisión',p.rol2],['apr','Aprobación',p.rol3]];
+  const falt=valFaltantes();
+  document.getElementById('valStatus').innerHTML=falt.length
+    ? '<span class="pill no">Incompleta</span> <span style="color:var(--ink-soft)">Falta: '+falt.map(esc).join(' · ')+'</span>'
+    : '<span class="pill ok">Validación completa</span> <span style="color:var(--ink-soft)">El reporte consolidado puede generarse.</span>';
+  document.getElementById('firmas').innerHTML=pasos.map(([id,tit,rol])=>{
+    const s=v[id]||{};
+    return '<div><span class="fnom">'+esc(s.nombre||'')+'&nbsp;</span><br><span class="frol">'+esc(rol)+'</span><br>Fecha: '+esc(s.fecha||'____________')+'</div>';
+  }).join('');
+}
+function renderHojaFMDJ(){
+  const emp=curEmp(); if(!emp) return;
+  const nd=new Date(sel.anio,sel.mes+1,0).getDate();
+  const v=getVal(false)||{reg:{},rev:{},apr:{}};
+  const p=P();
+  let tot=0, filas='';
+  for(let d=1; d<=nd; d++){
+    const k=keyDe(sel.anio,sel.mes,d);
+    const r=getReg(emp.id,k)||{};
+    const fer=esFeriado(k);
+    const hR=horasReales(r,emp);
+    const hf=evalHF(emp,k,r);
+    const hfOK=hf.tramo!==null && hf.tramo>0 && !hf.errs.length;
+    let act='', ini='', alm='', fin='', tc='';
+    if(r.nov===NOV_REC && (r.recEst||'Pendiente')!=='Rechazada'){
+      act='Día de recuperación'+((r.recEst==='Autorizada')?' (descanso compensatorio autorizado)':' (pendiente de autorización)');
+    } else if(r.nov){
+      act=r.nov;
+    } else if(hR!==null || hfOK){
+      act=(r.act||'').trim() || emp.actividad || '';
+      if(fer) act=(act?act+' — ':'')+'Feriado: '+state.feriados[k];
+      ini=(hR!==null)?r.entrada:(hfOK?r.hfIni:'');
+      fin=hfOK?r.hfFin:((hR!==null)?r.salida:'');
+      const tReal=(hR!==null)?tramoH(r.entrada,r.salida):null;
+      alm=(tReal!==null && tReal>=6 && (emp.almuerzo||0)>0)?fmtHM((emp.almuerzo||0)/60):'';
+      const t=(hR||0)+(hfOK?hf.tramo:0);
+      tot+=t; tc=fmtHM(t);
+    } else if(fer){
+      act='Feriado — '+state.feriados[k];
+    }
+    filas+='<tr><td class="fecha">'+DIAS_LG[dowDe(k)]+' '+d+' de '+MESES[sel.mes].toLowerCase()+' de '+sel.anio+'</td>'+
+      '<td>'+esc(act)+'</td><td class="c">'+esc(ini)+'</td><td class="c">'+alm+'</td><td class="c">'+esc(fin)+'</td><td class="c">'+tc+'</td></tr>';
+  }
+  const firmas=[[p.rol1,'Registrado por:',v.reg||{}],[p.rol2,'Revisado por:',v.rev||{}],[p.rol3,'Aprobado por:',v.apr||{}]]
+    .map(([rol,tag,s])=>'<td><div style="height:46px"></div><div class="linea"><span class="nomF">'+esc(s.nombre||'')+'&nbsp;</span><br><span class="rolF">'+tag+' '+esc(rol)+'</span><br>Fecha: '+esc(s.fecha||'____________')+'</div></td>').join('');
+  document.getElementById('hojaFMDJ').innerHTML=
+    '<table class="enc">'+
+      '<tr><td class="logo" rowspan="6">Fundación<br>Mariana<br>de Jesús</td><td class="instit" colspan="2">FUNDACIÓN MARIANA DE JESÚS</td></tr>'+
+      '<tr><td class="lbl">Año</td><td class="titulo" rowspan="2">REGISTRO DE ASISTENCIA</td></tr>'+
+      '<tr><td>'+sel.anio+'</td></tr>'+
+      '<tr><td class="lbl">Colaborador/a</td><td>'+esc(emp.nombre)+'</td></tr>'+
+      '<tr><td class="lbl">Cargo</td><td>'+esc(emp.cargo||'')+'</td></tr>'+
+      '<tr><td class="lbl">Área</td><td>'+esc(emp.area||(state.obra||''))+'</td></tr>'+
+    '</table>'+
+    '<table class="enc" style="border-top:none"><tr><td class="lbl" style="border-top:none">Mes</td><td style="border-top:none">'+MESES[sel.mes]+'</td></tr></table>'+
+    '<table class="dias">'+
+      '<thead><tr><th style="width:170px">Lugar y fecha</th><th>Actividad realizada</th><th style="width:80px">Hora de inicio<br>(jornada laboral)</th><th style="width:64px">Almuerzo</th><th style="width:80px">Hora de término<br>(jornada laboral)</th><th style="width:78px">Total horas<br>(laboradas)</th></tr></thead>'+
+      '<tbody>'+filas+
+      '<tr class="tot"><td colspan="5" style="text-align:right">TOTAL</td><td class="c">'+fmtHM(tot)+':00</td></tr></tbody>'+
+    '</table>'+
+    '<table class="firmasF"><tr>'+firmas+'</tr></table>';
+}
+
+function renderValidacion(){
+  const v=getVal(false)||{reg:{ok:false,nombre:'',fecha:''},rev:{ok:false,nombre:'',fecha:''},apr:{ok:false,nombre:'',fecha:''},obs:''};
+  const p=P();
+  const pasos=[['reg','Registro',p.rol1],['rev','Revisión',p.rol2],['apr','Aprobación',p.rol3]];
+  document.getElementById('valWrap').innerHTML=pasos.map(([id,tit,rol])=>{
+    const s=v[id]||{ok:false,nombre:'',fecha:''};
+    return '<div class="valStep'+(s.ok&&(s.nombre||'').trim()?' done':'')+'">'+
+      '<span class="rol">'+tit+'<b>'+esc(rol)+'</b></span>'+
+      '<input type="text" data-vf="'+id+'.nombre" placeholder="Nombre y apellido" value="'+esc(s.nombre||'')+'">'+
+      '<label class="ok"><input type="checkbox" data-vf="'+id+'.ok"'+(s.ok?' checked':'')+'> Completado</label>'+
+      '<span class="fch">'+(s.fecha?('Fecha: '+s.fecha):'')+'</span>'+
+    '</div>';
+  }).join('');
+  document.getElementById('obsMes').value=v.obs||'';
+  updateValMeta();
+}
+
+function renderAll(){
+  renderConfig(); renderParams(); renderFeriados(); renderEmpSelect(); renderMonthControls();
+  renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion();
+  document.getElementById('obraInput').value=state.obra||'';
+}
+function refreshCalc(){
+  patchAll(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion();
+}
+
+/* ================= Eventos ================= */
+function bind(){
+  document.getElementById('obraInput').addEventListener('input',e=>{ state.obra=e.target.value; persist(); renderResumen(); });
+
+  document.getElementById('selEmp').addEventListener('change',e=>{ sel.emp=e.target.value; renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion(); });
+  document.getElementById('selMes').addEventListener('change',e=>{ sel.mes=+e.target.value; renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion(); });
+  document.getElementById('selAnio').addEventListener('change',e=>{ const v=+e.target.value; if(v>=2000&&v<=2100){ sel.anio=v; renderFeriados(); renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion(); } });
+  document.getElementById('prevMes').addEventListener('click',()=>{ sel.mes--; if(sel.mes<0){sel.mes=11;sel.anio--;} renderMonthControls(); renderFeriados(); renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion(); });
+  document.getElementById('nextMes').addEventListener('click',()=>{ sel.mes++; if(sel.mes>11){sel.mes=0;sel.anio++;} renderMonthControls(); renderFeriados(); renderMatrix(); renderResumen(); renderNovedades(); renderKardex(); renderValidacion(); });
+
+  /* Matriz */
+  const tbl=document.getElementById('matrix');
+  const onCell=ev=>{
+    const el=ev.target, f=el.dataset.f; if(!f) return;
+    if(el.type==='checkbox' && ev.type==='input') return;
+    const tr=el.closest('tr'); if(!tr||!tr.dataset.k) return;
+    const k=tr.dataset.k, emp=curEmp();
+    const val=(el.type==='checkbox')?el.checked:el.value;
+    setRegField(emp.id,k,f,val);
+    if(f==='recEst') el.setAttribute('data-est',el.value||'Pendiente');
+    if(el.tagName==='SELECT' && ev.type==='input') return;
+    if(ev.type==='change' && ['entrada','salida','hfIni','hfFin'].includes(f)){
+      if(minInvalido(el.value)){
+        toast('<b>Minutos no válidos ('+esc(el.value)+').</b> '+MSG_FRAC);
+      } else {
+        const hfEv=evalHF(emp,k,getReg(emp.id,k)||{});
+        if(hfEv.errs.includes('solapa')) toast('<b>Horas a favor no válidas.</b> '+MSG_SOLAPA);
+      }
+    }
+    if(f==='recAut'||f==='act'){ patchRow(k); renderValidacion(); renderNovedades(); return; }
+    refreshCalc();
+  };
+  tbl.addEventListener('input',onCell);
+  tbl.addEventListener('change',onCell);
+
+  /* Copiar horario de un día y pegar en rango (arrastre tipo Excel) */
+  tbl.addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-copy]'); if(!b) return;
+    const k=b.dataset.copy;
+    const r=getReg(sel.emp,k)||{};
+    if(!r.entrada && !r.salida && !r.act){ toast('<b>Nada que copiar.</b> Ese día no tiene horario ni actividad registrada.'); return; }
+    clip={entrada:r.entrada||'',salida:r.salida||'',act:r.act||''};
+    document.getElementById('clipTxt').textContent=(clip.entrada||'—')+'–'+(clip.salida||'—')+(clip.act?' · '+clip.act:'');
+    document.getElementById('pegDesde').value=k;
+    document.getElementById('pegHasta').value=keyDe(sel.anio,sel.mes,new Date(sel.anio,sel.mes+1,0).getDate());
+    document.getElementById('pasteBar').hidden=false;
+  });
+  document.getElementById('btnPegCancel').addEventListener('click',()=>{ clip=null; document.getElementById('pasteBar').hidden=true; });
+  document.getElementById('btnPegar').addEventListener('click',()=>{
+    if(!clip) return;
+    const d1=document.getElementById('pegDesde').value, d2=document.getElementById('pegHasta').value;
+    if(!d1||!d2||d2<d1){ toast('<b>Rango no válido.</b> Revise las fechas de inicio y fin.'); return; }
+    const soloLab=document.getElementById('pegLab').checked;
+    const emp=curEmp(); let ok=0, omit=0;
+    let cur=new Date(d1+'T00:00:00'); const fin=new Date(d2+'T00:00:00');
+    while(cur<=fin){
+      const k=keyDe(cur.getFullYear(),cur.getMonth(),cur.getDate());
+      if(soloLab && !esExigible(emp,k)){ omit++; }
+      else{
+        if(clip.entrada) setRegField(emp.id,k,'entrada',clip.entrada);
+        if(clip.salida) setRegField(emp.id,k,'salida',clip.salida);
+        if(clip.act) setRegField(emp.id,k,'act',clip.act);
+        ok++;
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    renderMatrix(); refreshCalc();
+    toast('<b>Pegado en '+ok+' día'+(ok===1?'':'s')+'.</b>'+(omit?' Omitidos '+omit+' (descanso o feriado).':''),true);
+  });
+
+  /* Configuración de colaboradores */
+  const cfg=document.getElementById('empList');
+  cfg.addEventListener('click',ev=>{
+    const chipEl=ev.target.closest('.chip');
+    if(chipEl){
+      const emp=state.empleados.find(e=>e.id===chipEl.dataset.emp);
+      const d=+chipEl.dataset.d;
+      const i=emp.dias.indexOf(d);
+      if(i>=0) emp.dias.splice(i,1); else emp.dias.push(d);
+      persist(); renderConfig(); renderMatrix(); refreshCalc();
+      return;
+    }
+    const del=ev.target.closest('[data-del]');
+    if(del){
+      const emp=state.empleados.find(e=>e.id===del.dataset.del);
+      if(state.empleados.length<=1){ toast('<b>No es posible.</b> Debe existir al menos un colaborador.'); return; }
+      if(confirm('¿Eliminar a '+emp.nombre+' y todos sus registros?')){
+        state.empleados=state.empleados.filter(e=>e.id!==emp.id);
+        delete state.registros[emp.id];
+        delete state.validaciones[emp.id];
+        if(sel.emp===emp.id) sel.emp=state.empleados[0].id;
+        persist(); renderAll();
+      }
+    }
+  });
+  cfg.addEventListener('input',ev=>{
+    const el=ev.target;
+    const emp=state.empleados.find(e=>e.id===el.dataset.emp);
+    if(!emp) return;
+    if(el.classList.contains('empNom')){ emp.nombre=el.value; persist(); renderEmpSelect(); renderResumen(); return; }
+    const cf=el.dataset.cf;
+    if(cf){
+      if(cf==='saldoAnterior'){ emp.saldoAnterior=+el.value||0; persist(); refreshCalc(); return; }
+      if(cf==='cargo'||cf==='area'||cf==='actividad'){ emp[cf]=el.value; persist(); return; }
+      emp[cf]=(cf==='almuerzo')?Math.max(0,+el.value||0):el.value;
+      persist();
+      el.closest('.empCard').querySelector('.hDia b').textContent=fmt(horasContrato(emp));
+      renderMatrix(); refreshCalc();
+    }
+  });
+  document.getElementById('btnAddEmp').addEventListener('click',()=>{
+    state.empleados.push({id:uid(),nombre:'Nuevo colaborador',cargo:'',area:'',actividad:'',saldoAnterior:0,dias:[1,2,3,4,5],entrada:'08:00',salida:'16:30',almuerzo:30});
+    persist(); renderConfig(); renderEmpSelect();
+  });
+
+  /* Parámetros */
+  const bindParam=(id,campo,num,light)=>{
+    document.getElementById(id).addEventListener('input',e=>{
+      P()[campo]=num?Math.max(num.min,+e.target.value||num.min):(e.target.type==='checkbox'?e.target.checked:e.target.value);
+      persist();
+      if(light){ renderValidacion(); renderNovedades(); }
+      else { renderMatrix(); refreshCalc(); }
+    });
+  };
+  bindParam('pFacDesc','facDescanso',{min:1});
+  bindParam('pFacFer','facFeriado',{min:1});
+  bindParam('pHorasRec','horasDiaRec',{min:1});
+  bindParam('pValidaFrac','validaFrac',null);
+  bindParam('pRol1','rol1',null,true);
+  bindParam('pRol2','rol2',null,true);
+  bindParam('pRol3','rol3',null,true);
+
+  /* Feriados */
+  document.getElementById('btnFerAdd').addEventListener('click',()=>{
+    const f=document.getElementById('ferFecha').value;
+    const n=document.getElementById('ferNombre').value.trim();
+    if(!f||!n){ toast('<b>Datos incompletos.</b> Indique fecha y nombre del feriado.'); return; }
+    state.feriados[f]=n;
+    document.getElementById('ferNombre').value='';
+    persist(); renderFeriados(); renderMatrix(); refreshCalc();
+  });
+  document.getElementById('ferAnio').addEventListener('change',renderFeriados);
+  document.getElementById('ferBody').addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-ferdel]'); if(!b) return;
+    delete state.feriados[b.dataset.ferdel];
+    persist(); renderFeriados(); renderMatrix(); refreshCalc();
+  });
+  document.getElementById('btnFerCsv').addEventListener('click',()=>document.getElementById('fileFer').click());
+  document.getElementById('fileFer').addEventListener('change',ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      let ok=0, mal=0;
+      String(rd.result).split(/\r?\n/).forEach(line=>{
+        line=line.trim(); if(!line) return;
+        const p=line.split(/[;,\t]/).map(x=>x.trim());
+        if(p.length<2){ mal++; return; }
+        let fecha=p[0], nombre=p.slice(1).join(' ').trim();
+        let m=fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if(!m){ const m2=fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m2) fecha=m2[3]+'-'+pad(+m2[2])+'-'+pad(+m2[1]); else { mal++; return; } }
+        if(!nombre){ mal++; return; }
+        state.feriados[fecha]=nombre; ok++;
+      });
+      persist(); renderFeriados(); renderMatrix(); refreshCalc();
+      toast('<b>Importación de feriados:</b> '+ok+' cargados'+(mal?(', '+mal+' líneas no válidas'):'')+'.');
+      ev.target.value='';
+    };
+    rd.readAsText(f);
+  });
+
+  /* Validación mensual */
+  const vw=document.getElementById('valWrap');
+  const onVal=ev=>{
+    const el=ev.target, vf=el.dataset.vf; if(!vf) return;
+    if(el.type==='checkbox' && ev.type==='input') return;
+    const [id,campo]=vf.split('.');
+    const v=getVal(true);
+    if(campo==='ok'){
+      v[id].ok=el.checked;
+      v[id].fecha=el.checked?new Date().toLocaleDateString('es-EC'):'';
+      persist(); renderValidacion(); renderNovedades();
+    } else {
+      v[id][campo]=el.value;
+      const step=el.closest('.valStep');
+      if(step) step.classList.toggle('done', !!(v[id].ok && (v[id].nombre||'').trim()));
+      persist(); updateValMeta(); renderNovedades();
+    }
+  };
+  vw.addEventListener('input',onVal);
+  vw.addEventListener('change',onVal);
+  document.getElementById('obsMes').addEventListener('input',e=>{
+    const v=getVal(true); v.obs=e.target.value; persist(); renderNovedades();
+  });
+
+  /* Acciones */
+  document.getElementById('btnCsv').addEventListener('click',exportCsv);
+  document.getElementById('btnJsonExp').addEventListener('click',()=>{
+    download(JSON.stringify(state,null,2),'control_asistencia_respaldo.json','application/json');
+  });
+  document.getElementById('btnJsonImp').addEventListener('click',()=>document.getElementById('fileJson').click());
+  document.getElementById('fileJson').addEventListener('change',ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{
+        const p=JSON.parse(rd.result);
+        if(!p||!p.empleados||!p.empleados.length) throw 0;
+        state=migrar(p); sel.emp=state.empleados[0].id;
+        persist(); renderAll();
+      }catch(e){ toast('<b>Archivo no válido.</b> El JSON no tiene el formato esperado.'); }
+      ev.target.value='';
+    };
+    rd.readAsText(f);
+  });
+  document.getElementById('btnClear').addEventListener('click',()=>{
+    const emp=curEmp();
+    const pref=sel.anio+'-'+pad(sel.mes+1);
+    if(confirm('¿Borrar todos los registros de '+emp.nombre+' en '+MESES[sel.mes]+' '+sel.anio+'?')){
+      const regs=getRegs(emp.id);
+      Object.keys(regs).forEach(k=>{ if(k.startsWith(pref)) delete regs[k]; });
+      persist(); renderMatrix(); refreshCalc();
+    }
+  });
+  document.getElementById('btnReset').addEventListener('click',()=>{
+    if(confirm('¿Restaurar los datos de ejemplo? Se reemplazará el contenido actual (colaboradores, registros y saldos) por la configuración inicial de demostración. Exporte un respaldo JSON antes si desea conservar lo capturado.')){
+      state=migrar(seed()); sel.emp=state.empleados[0].id;
+      persist(); renderAll();
+      toast('<b>Datos de ejemplo restaurados.</b> René Benavides incluye saldo anterior de 128 h.',true);
+    }
+  });
+  document.getElementById('btnPrint').addEventListener('click',()=>{
+    const falt=valFaltantes();
+    if(falt.length){
+      toast('<b>No se puede generar el reporte consolidado.</b> Falta completar (nombre y visto bueno): '+falt.map(esc).join('; ')+'.');
+      const pv=document.getElementById('panelVal');
+      if(pv && pv.scrollIntoView) pv.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    renderResumen(); renderNovedades(); renderValidacion(); renderHojaFMDJ();
+    window.print();
+  });
+  window.addEventListener('beforeprint',()=>{ renderResumen(); renderNovedades(); renderHojaFMDJ(); });
+}
+
+/* ================= Exportaciones ================= */
+function download(contenido,nombre,tipo){
+  const b=new Blob([contenido],{type:tipo+';charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=nombre;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400);
+}
+function csvVal(c){
+  c=String(c==null?'':c);
+  return /[;"\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;
+}
+function exportCsv(){
+  const emp=curEmp();
+  const led=ledger(emp.id);
+  const hc=horasContrato(emp);
+  const pl=planMes(emp,sel.anio,sel.mes);
+  const nd=new Date(sel.anio,sel.mes+1,0).getDate();
+  const rows=[
+    ['Obra:',state.obra||''],
+    ['Colaborador:',emp.nombre,'Cargo:',emp.cargo||'','Área:',emp.area||'','Jornada: '+diasLabel(emp.dias)+' '+emp.entrada+'-'+emp.salida+' ('+fmt(hc)+' h/dia)'],
+    ['Plan del mes (h):',fmt(pl.plan),'Trabajadas:',fmt(pl.trab),'Cubiertas por recuperacion:',fmt(pl.cub),'Por trabajar:',fmt(pl.pend),'Saldo HF acumulado:',fmt(led.saldo)],
+    [],
+    ['Fecha','Día','Condición','Actividad realizada','Jornada contrato','Entrada real','Salida real','Horas reales','Dif. contrato','HF inicio','HF fin','Tramo HF','Factor','HF reconocidas','Novedad','Acredita/Consume (h)','Compensa (FIFO)','Autoriza','Justificación','Estado']
+  ];
+  for(let d=1; d<=nd; d++){
+    const k=keyDe(sel.anio,sel.mes,d);
+    const lab=emp.dias.includes(dowDe(k)), fer=esFeriado(k), exig=lab&&!fer;
+    const r=getReg(emp.id,k)||{};
+    const hR=horasReales(r,emp);
+    const delta=(hR===null)?null:hR-(exig?hc:0);
+    const hf=evalHF(emp,k,r);
+    const rec=led.recs.find(x=>x.fecha===k);
+    rows.push([
+      k, DIAS_JS[dowDe(k)],
+      fer?('Feriado: '+state.feriados[k]):(lab?'Laborable':'Descanso'),
+      r.act||'',
+      exig?(emp.entrada+'-'+emp.salida):'',
+      r.entrada||'', r.salida||'',
+      hR===null?'':fmt(hR), delta===null?'':fmt(delta),
+      r.hfIni||'', r.hfFin||'',
+      hf.tramo?fmt(hf.tramo):'', hf.rec>0?String(hf.factor).replace('.',','):'', hf.rec>0?fmt(hf.rec):'',
+      r.nov||'', r.nov?(r.nov===NOV_REC?(rec?'-'+fmt(rec.horas):''):'+'+fmt(exig?hc:0)):'',
+      rec?rec.alloc.map(a=>a.g+' ('+fmt(a.h)+')').join(' + ')+(rec.faltante>0.001?' FALTAN '+fmt(rec.faltante):''):'',
+      r.recAut||'', r.recJus||'', r.nov?(r.recEst||'Pendiente'):''
+    ]);
+  }
+  const body=rows.map(rr=>rr.map(csvVal).join(';')).join('\r\n');
+  const slug=emp.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_');
+  download('\uFEFF'+body,'asistencia_'+slug+'_'+sel.anio+'-'+pad(sel.mes+1)+'.csv','text/csv');
+}
+
+/* ================= Inicio ================= */
+(async function init(){
+  const loaded=await loadState();
+  state=migrar(loaded||seed());
+  sel.emp=state.empleados[0].id;
+  chip(); bind(); renderAll();
+})();
+</script>
+</body>
+</html>
