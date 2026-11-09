@@ -334,6 +334,7 @@ details.notes li{margin-bottom:4px}
         <input type="number" id="pHorasRec" min="1" step="1">
       </label>
       <label class="inline"><input type="checkbox" id="pValidaFrac"> Validar fracciones de minutos (00 / 30 / 45)</label>
+      <label class="inline"><input type="checkbox" id="pDescSinReg"> Descontar del saldo los días laborables sin registro (si está apagado, use «Falta injustificada»)</label>
       <label>Rol 1 · registra
         <input type="text" id="pRol1">
       </label>
@@ -544,6 +545,7 @@ function setCloud(s,txt){
 const K_INI='0000-00-00';
 const NOV_REC='Recuperación de horas';
 const NOV_TIPOS=['Permiso médico','Calamidad doméstica','Día de cumpleaños','Vacaciones'];
+const NOV_FALTA='Falta injustificada';
 const MSG_FRAC = 'Solo se registran fracciones de 30 minutos (:00 o :30); 45 minutos o más se redondea a la hora completa.';
 const MSG_SOLAPA = 'El tramo coincide con tiempo ya cubierto por el registro real (entrada–salida). Registre en horas a favor solo el tiempo adicional; si todo el día es trabajo extraordinario (descanso o feriado), deje el registro real vacío y use únicamente horas a favor.';
 
@@ -554,7 +556,7 @@ let sel = { emp:null, mes:new Date().getMonth(), anio:new Date().getFullYear() }
 
 function defaultParams(){
   return {
-    facDescanso:2, facFeriado:2, horasDiaRec:8, validaFrac:true,
+    facDescanso:2, facFeriado:2, horasDiaRec:8, validaFrac:true, descSinReg:false,
     rol1:'Administrador del CESI', rol2:'Analista de Talento Humano', rol3:'Director del Área'
   };
 }
@@ -760,17 +762,21 @@ function ledger(empId){
 function planMes(emp,anio,mes){
   const hc=horasContrato(emp);
   const nd=new Date(anio,mes+1,0).getDate();
-  let plan=0, trab=0, cub=0, diasLab=0;
+  let plan=0, trab=0, cubPerm=0, cubRec=0, diasLab=0;
   for(let d=1;d<=nd;d++){
     const k=keyDe(anio,mes,d);
     if(!esExigible(emp,k)) continue;   /* excluye descansos y feriados; los permisos NO afectan */
     plan+=hc; diasLab++;
     const r=getReg(emp.id,k)||{};
-    if(r.nov && (r.nov!==NOV_REC || (r.recEst||'Pendiente')==='Autorizada')){ cub+=hc; continue; }
+    if(r.nov){
+      if(r.nov===NOV_FALTA){ /* falta: no cubre el día */ }
+      else if(r.nov===NOV_REC){ if((r.recEst||'Pendiente')==='Autorizada'){ cubRec+=hc; continue; } }
+      else { cubPerm+=hc; continue; }
+    }
     const hR=horasReales(r,emp);
     if(hR!==null) trab+=Math.min(hR,hc);
   }
-  return {plan,trab,cub,pend:plan-trab-cub,diasLab};
+  return {plan,trab,cub:cubPerm+cubRec,cubPerm,cubRec,pend:plan-trab-cubPerm-cubRec,diasLab};
 }
 
 /* --- Balance del mes y total acumulado (módulos tipo hoja institucional) --- */
@@ -778,29 +784,36 @@ function mesBalance(emp,anio,mes){
   const hc=horasContrato(emp);
   const nd=new Date(anio,mes+1,0).getDate();
   const pl=planMes(emp,anio,mes);
-  let reales=0, perm=0, hf=0;
+  let reales=0, permAcred=0, recDias=0, hf=0, planReg=0;
   const porNov={};
   for(let d=1;d<=nd;d++){
     const k=keyDe(anio,mes,d);
     const r=getReg(emp.id,k); if(!r) continue;
     const hR=horasReales(r,emp);
     if(hR!==null) reales+=hR;
-    if(r.nov && esExigible(emp,k)){ perm+=hc; porNov[r.nov]=(porNov[r.nov]||0)+hc; }
+    if(esExigible(emp,k)){
+      if(r.nov===NOV_FALTA){ planReg+=hc; }                                                /* falta injustificada: se debe la jornada */
+      else if(r.nov===NOV_REC){ if((r.recEst||'Pendiente')==='Autorizada'){ recDias+=hc; planReg+=hc; } }  /* recuperación: cubre el día, no acredita */
+      else if(r.nov){ permAcred+=hc; planReg+=hc; porNov[r.nov]=(porNov[r.nov]||0)+hc; }   /* permisos: sí acreditan jornada */
+      else if(hR!==null){ planReg+=hc; }                                                   /* día trabajado registrado */
+    }
     const e=evalHF(emp,k,r);
     if(e.rec>0) hf+=e.rec;
   }
-  const acred=reales+perm+hf;
-  /* Consumo de recuperación imputado a HF generadas en este mismo mes */
+  const acred=reales+permAcred+hf;                 /* trabajadas + permisos + HF · la recuperación NO suma aquí */
+  /* Recuperación TOMADA en este mes (autorizada), venga de HF recientes o del saldo del año anterior. */
   const led=ledger(emp.id);
   const pref=anio+'-'+pad(mes+1);
-  let consMesHF=0;
-  led.recs.forEach(x=>{ x.alloc.forEach(a=>{ if(a.g!==K_INI && a.g.startsWith(pref)) consMesHF+=a.h; }); });
-  const hfNeto=hf-consMesHF;                       /* HF del mes netas de recuperación */
-  const cumplido=reales+perm;                      /* asistencia + permisos que cubren jornada */
-  const deficit=Math.max(0, pl.plan-cumplido);     /* tiempo que quedó debiendo */
-  /* Aporte al acumulado: HF netas menos el déficit de asistencia */
-  const aporte=hfNeto-deficit;
-  return {plan:pl.plan, reales, perm, hf, hfNeto, consMesHF, acred, deficit, af:acred-pl.plan, aporte, porNov};
+  let consumoMes=0;
+  led.recs.forEach(x=>{ if(x.est==='Autorizada' && x.fecha.startsWith(pref)) x.alloc.forEach(a=>{ consumoMes+=a.h; }); });
+  const hfNeto=hf-consumoMes;                       /* horas a favor del mes: generadas − recuperadas */
+  const cumplido=reales+permAcred+recDias;          /* la recuperación cubre el día (no es deuda), aunque no acredita trabajo */
+  /* Déficit: solo sobre días registrados; los días en blanco quedan 'pendientes de captura' (se ven en Por trabajar).
+     Si el parámetro descSinReg está activo, se descuentan también los días laborables sin registro. */
+  const baseDef=P().descSinReg?pl.plan:planReg;
+  const deficit=Math.max(0, baseDef-cumplido);
+  const aporte=hfNeto-deficit;                      /* lo que sube/baja el saldo este mes */
+  return {plan:pl.plan, reales, perm:permAcred, recDias, hf, hfNeto, consumoMes, acred, deficit, af:aporte, aporte, porNov};
 }
 function totalAF(emp,anio,mes){
   const corte=anio+'-'+pad(mes+1);
@@ -933,6 +946,7 @@ function renderParams(){
   document.getElementById('pFacFer').value=p.facFeriado;
   document.getElementById('pHorasRec').value=p.horasDiaRec;
   document.getElementById('pValidaFrac').checked=!!p.validaFrac;
+  document.getElementById('pDescSinReg').checked=!!p.descSinReg;
   document.getElementById('pRol1').value=p.rol1;
   document.getElementById('pRol2').value=p.rol2;
   document.getElementById('pRol3').value=p.rol3;
@@ -993,7 +1007,7 @@ function renderMatrix(){
       '<td class="g-hf"><input type="time" data-f="hfIni" value="'+esc(r.hfIni||'')+'"></td>'+
       '<td class="g-hf"><input type="time" data-f="hfFin" value="'+esc(r.hfFin||'')+'"></td>'+
       '<td class="g-hf numcell" id="hf_'+k+'"></td>'+
-      '<td class="g-rec"><select data-f="nov">'+['',...NOV_TIPOS,NOV_REC].map(o=>'<option value="'+esc(o)+'"'+(o===(r.nov||'')?' selected':'')+'>'+(o||'—')+'</option>').join('')+'</select></td>'+
+      '<td class="g-rec"><select data-f="nov">'+['',...NOV_TIPOS,NOV_REC,NOV_FALTA].map(o=>'<option value="'+esc(o)+'"'+(o===(r.nov||'')?' selected':'')+'>'+(o||'—')+'</option>').join('')+'</select></td>'+
       '<td class="g-rec numcell" id="rc_'+k+'"></td>'+
 
       '<td class="g-rec"><input type="text" class="aut" data-f="recAut" placeholder="Nombre" value="'+esc(r.recAut||'')+'"></td>'+
@@ -1078,6 +1092,12 @@ function patchRow(k,led){
     const icon=warn?(' <span class="warn" title="'+esc(info+' — '+warn)+'">▲</span>'):(' <span class="warn" style="color:var(--ink-soft);cursor:help" title="'+esc(info)+'">ⓘ</span>');
     elRc.innerHTML=fmt(rec.horas)+icon;
     elRc.className='g-rec numcell'+((rec.faltante>0.001||!exig)?' err':' debit');
+  } else if(nov===NOV_FALTA){
+    let warn='';
+    if(!exig) warn='La falta solo descuenta en días laborables no feriados.';
+    if(hR!==null) warn=(warn?warn+' ':'')+'Día con falta y jornada registrada; verifique.';
+    elRc.innerHTML='−'+fmt(exig?hc:0)+(warn?' <span class="warn" title="'+esc(warn)+'">▲</span>':'');
+    elRc.className='g-rec numcell'+((!exig||hR!==null)?' err':' debit');
   } else if(nov){
     let warn='';
     if(!exig) warn='La novedad acredita jornada solo en días laborables no feriados.';
@@ -1100,7 +1120,7 @@ function renderResumen(){
 
   document.getElementById('aPlan').innerHTML=fmt(pl.plan)+' <small>h</small>';
   document.getElementById('aTrab').innerHTML=fmt(pl.trab)+' <small>h</small>';
-  document.getElementById('aRec').innerHTML=fmt(pl.cub)+' <small>h</small>';
+  document.getElementById('aRec').innerHTML=fmt(pl.cubPerm)+' <small>h</small>';
   document.getElementById('aPend').innerHTML=fmt(pl.pend)+' <small>h</small>';
   document.getElementById('figPorTrab').classList.toggle('negativo',pl.pend>0.001);
 
@@ -1109,27 +1129,26 @@ function renderResumen(){
   let genMes=0;
   Object.keys(led.gen).forEach(k=>{ if(k!==K_INI && k.startsWith(pref)) genMes+=led.gen[k]; });
   const genMesNeto=bal.hfNeto;
-  const consMesHF=bal.consMesHF;
+  const consumoMes=bal.consumoMes;
   document.getElementById('aPlanSub').textContent='referencial estático (no varía por permisos): '+pl.diasLab+' días laborables no feriados × '+fmt(horasContrato(emp))+' h';
   document.getElementById('bAntLbl').textContent='Saldo horas año anterior ('+(sel.anio-1)+')';
   document.getElementById('bAnt').innerHTML=fmt(+emp.saldoAnterior||0)+' <small>h</small>';
   const elSG=document.getElementById('sGen');
   elSG.innerHTML=fmt(genMesNeto)+' <small>h</small>';
-  document.getElementById('sGenSub') && (document.getElementById('sGenSub').textContent=consMesHF>0.001?('generadas '+fmt(genMes)+' − consumidas '+fmt(consMesHF)):'');
+  document.getElementById('sGenSub') && (document.getElementById('sGenSub').textContent=consumoMes>0.001?('generadas '+fmt(genMes)+' − recuperadas '+fmt(consumoMes)):'');
   document.getElementById('bMes').innerHTML=fmtSig(bal.af)+' <small>h</small>';
     {
-    const orden=[...NOV_TIPOS, NOV_REC];
-    const partes=orden.filter(t=>bal.porNov[t]>0.001).map(t=>t+' '+fmt(bal.porNov[t]));
-    document.getElementById('aRecSub').textContent=partes.length?partes.join(' · '):'sin novedades en el mes';
+    const partes=NOV_TIPOS.filter(t=>bal.porNov[t]>0.001).map(t=>t+' '+fmt(bal.porNov[t]));
+    document.getElementById('aRecSub').textContent=partes.length?partes.join(' · '):'sin permisos en el mes';
   }
-  document.getElementById('bMesSub').textContent='indicador: acreditadas '+fmt(bal.acred)+' − efectivas '+fmt(bal.plan)+(bal.deficit>0.001?(' · déficit '+fmt(bal.deficit)+' h descuenta del acumulado'):'');
+  document.getElementById('bMesSub').textContent='generadas '+fmt(bal.hf)+' − recuperadas '+fmt(bal.consumoMes)+(bal.deficit>0.001?(' − déficit '+fmt(bal.deficit)):'');
   document.getElementById('sSaldo').innerHTML=fmt(tot)+' <small>h</small>';
   document.getElementById('figSaldo').classList.toggle('negativo',tot<-0.001);
 
   const v=getVal(false);
   document.getElementById('pmObra').textContent='Obra / Proyecto: '+(state.obra||'—');
   document.getElementById('pmEmp').textContent='Colaborador: '+emp.nombre+(emp.cargo?' · Cargo: '+emp.cargo:'')+(emp.area?' · Área: '+emp.area:'')+' · Período: '+MESES[sel.mes]+' '+sel.anio+' · Jornada: '+diasLabel(emp.dias)+' '+emp.entrada+'–'+emp.salida;
-  document.getElementById('pmSaldos').textContent='Horas efectivas: '+fmt(pl.plan)+' h · Trabajadas (acreditadas): '+fmt(bal.acred)+' h · Mes a favor/en contra: '+fmtSig(bal.af)+' h · Por trabajar: '+fmt(pl.pend)+' h · Saldo año anterior: '+fmt(+emp.saldoAnterior||0)+' h · Total horas a favor: '+fmt(tot)+' h · Impreso el '+new Date().toLocaleDateString('es-EC');
+  document.getElementById('pmSaldos').textContent='Horas efectivas: '+fmt(pl.plan)+' h · Trabajadas+permisos+HF: '+fmt(bal.acred)+' h · Aporte del mes (a favor/en contra): '+fmtSig(bal.af)+' h · Por trabajar: '+fmt(pl.pend)+' h · Saldo año anterior: '+fmt(+emp.saldoAnterior||0)+' h · Total horas a favor: '+fmt(tot)+' h · Impreso el '+new Date().toLocaleDateString('es-EC');
 }
 
 function novedadesMes(){
@@ -1145,7 +1164,7 @@ function novedadesMes(){
     items.push({t:'hf',html:'<span class="tag hf">HF</span>'+fechaDia(k)+': '+r.hfIni+'–'+r.hfFin+' = '+fmt(hf.tramo)+' h'+(hf.factor>1?' ×'+String(hf.factor).replace('.',',')+' = <b>'+fmt(hf.rec)+' h</b>':'')});
   });
   {const ndp=new Date(sel.anio,sel.mes+1,0).getDate();
-  for(let d=1; d<=ndp; d++){ const k=keyDe(sel.anio,sel.mes,d); const rr=getReg(emp.id,k); if(rr&&rr.nov&&rr.nov!==NOV_REC) items.push({t:'rc',html:'<span class="tag rc">Novedad</span>'+fechaDia(k)+': '+esc(rr.nov)+' — acredita '+fmt(horasContrato(emp))+' h'+(rr.recJus?' · '+esc(rr.recJus):'')}); }}
+  for(let d=1; d<=ndp; d++){ const k=keyDe(sel.anio,sel.mes,d); const rr=getReg(emp.id,k); if(rr&&rr.nov&&rr.nov!==NOV_REC) items.push({t:'rc',html:'<span class="tag rc">Novedad</span>'+fechaDia(k)+': '+esc(rr.nov)+(rr.nov===NOV_FALTA?' — descuenta ':' — acredita ')+fmt(horasContrato(emp))+' h'+(rr.recJus?' · '+esc(rr.recJus):'')}); }}
   led.recs.forEach(x=>{
     if(!x.fecha.startsWith(pref)) return;
     const det=x.alloc.map(a=>fechaCorta(a.g)+' ('+fmt(a.h)+' h)').join(', ');
@@ -1434,6 +1453,7 @@ function bind(){
   bindParam('pFacFer','facFeriado',{min:1});
   bindParam('pHorasRec','horasDiaRec',{min:1});
   bindParam('pValidaFrac','validaFrac',null);
+  bindParam('pDescSinReg','descSinReg',null);
   bindParam('pRol1','rol1',null,true);
   bindParam('pRol2','rol2',null,true);
   bindParam('pRol3','rol3',null,true);
@@ -1592,7 +1612,7 @@ function exportCsv(){
       hR===null?'':fmt(hR), delta===null?'':fmt(delta),
       r.hfIni||'', r.hfFin||'',
       hf.tramo?fmt(hf.tramo):'', hf.rec>0?String(hf.factor).replace('.',','):'', hf.rec>0?fmt(hf.rec):'',
-      r.nov||'', r.nov?(r.nov===NOV_REC?(rec?'-'+fmt(rec.horas):''):'+'+fmt(exig?hc:0)):'',
+      r.nov||'', r.nov?(r.nov===NOV_REC?(rec?'-'+fmt(rec.horas):''):(r.nov===NOV_FALTA?'-':'+')+fmt(exig?hc:0)):'',
       rec?rec.alloc.map(a=>a.g+' ('+fmt(a.h)+')').join(' + ')+(rec.faltante>0.001?' FALTAN '+fmt(rec.faltante):''):'',
       r.recAut||'', r.recJus||'', r.nov?(r.recEst||'Pendiente'):''
     ]);
